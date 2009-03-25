@@ -311,7 +311,7 @@ static int restore_lowmem_stub(struct kimage *image)
 	error = of_address_to_resource(node, 0, &res);
 	if (error) {
 		printk(KERN_ERR "no lowmem-stub range found\n");
-	  goto out_put;
+		goto out_put;
 	}
 	dst = res.start;
 	size = res.end - res.start + 1;

@@ -14,10 +14,10 @@
 
 /dts-v1/;
 
-/memreserve/ 0x10000000 0x0004000;	/* DSP RAM */
-/memreserve/ 0x01694000 0x0004000;	/* lowmem stub save area */
-/memreserve/ 0x01698000 0x0168000;	/* framebuffer, see video@0c002000 */
-/memreserve/ 0x01800000 0xe800000;	/* memory hole */
+/memreserve/ 0x1694000 0x00003fff; /* lowmem stub save area */
+/memreserve/ 0x1698000 0x0167fffd; /* framebuffer, see video@0c002000 */
+/memreserve/ 0x1800000 0xe7fffffd; /* memory hole */
+/memreserve/ 0x10000000 0x00003fff; /* DSP */
 
 / {
 	model = "nintendo,wii";

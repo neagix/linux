@@ -29,7 +29,6 @@ BSS_STACK(8192);
 #define MEM2_TOP		(0x10000000 + 64*1024*1024)
 #define FIRMWARE_DEFAULT_SIZE	(12*1024*1024)
 
-
 static int save_lowmem_stub(void)
 {
 	void *src, *dst;
@@ -41,18 +40,18 @@ static int save_lowmem_stub(void)
 	devp = finddevice("/lowmem-stub");
 	if (devp == NULL) {
 		printf("lowmem-stub: none\n");
-		goto out;
+		goto err_out;
 	}
 
 	if (getprop(devp, "reg", reg, sizeof(reg)) != sizeof(reg)) {
 		printf("unable to find %s property\n", "reg");
-		goto out;
+		goto err_out;
 	}
 	src = (void *)reg[0];
 	size = reg[1];
 	if (getprop(devp, "save-area", &v, sizeof(v)) != sizeof(v)) {
 		printf("unable to find %s property\n", "save-area");
-		goto out;
+		goto err_out;
 	}
 	dst = (void *)v;
 
@@ -62,10 +61,9 @@ static int save_lowmem_stub(void)
 	flush_cache(dst, size);
 
 	return 0;
-out:
+err_out:
 	return -1;
 }
-
 
 struct mipc_infohdr {
 	char magic[3];
@@ -201,6 +199,9 @@ out:
 	return;
 }
 
+/*
+ *
+ */
 void platform_init(unsigned long r3, unsigned long r4, unsigned long r5)
 {
 	u32 heapsize = 24*1024*1024 - (u32)_end;
@@ -218,6 +219,7 @@ void platform_init(unsigned long r3, unsigned long r4, unsigned long r5)
 		console_ops.write = ug_console_write;
 
 	platform_ops.fixups = platform_fixups;
+
 	save_lowmem_stub();
 }
 
