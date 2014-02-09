@@ -912,6 +912,15 @@ config LOCKDEP
 	select KALLSYMS
 	select KALLSYMS_ALL
 
+config MAX_STACK_TRACE_ENTRIES
+	int "MAX_STACK_TRACE_ENTRIES for LOCKDEP"
+	depends on LOCKDEP
+	default 262144
+	help
+	   This option allows you to change the default MAX_STACK_TRACE_ENTRIES
+	   used for LOCKDEP. Warning, increasing this number will increase the
+	   size of the stack_trace array, and thus the kernel size too.
+
 config LOCK_STAT
 	bool "Lock usage statistics"
 	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
