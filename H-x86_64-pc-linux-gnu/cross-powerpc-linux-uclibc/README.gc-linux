@@ -1,0 +1,58 @@
+PowerPC toolchain for gc-linux.org Linux kernels
+buildroot-20090131gcn1-src.tar.bz2
+1 Feb 2009, Albert "isobel" Herranz
+
+
+This buildroot was tested with:
+
+	binutils-2.19
+	linux-libc-headers-2.6.28.2
+	gmp-4.2.2
+	mpfr-2.3.0
+	gcc-4.3.2
+	uClibc-0.9.30
+	gdb-6.8
+
+`buildroot' is documented here: http://buildroot.uclibc.org/buildroot.html
+
+
+== Installing the toolchain ==
+
+Uncompress the toolchain to a directory where you have write access. 
+
+  /* for 32-bit hosts */
+  $ cd ~
+  $ tar xjvf /tmp/buildroot-20090131gcn1-i686-cross-powerpc.tar.bz2
+
+  /* for 64-bit hosts */
+  $ cd ~
+  $ tar xjvf /tmp/buildroot-20090131gcn1-x86_64-cross-powerpc.tar.bz2
+
+
+== Preparing to use the toolchain ==
+
+1. Add the /usr/bin directory of the powerpc toolchain tree to your PATH
+environment variable. 
+
+  /* for 32-bit hosts */
+  $ PATH=$PATH:~/H-i686-pc-linux-gnu/cross-powerpc-linux-uclibc/usr/bin/
+  $ export PATH
+
+  /* for 64-bit hosts */
+  $ PATH=$PATH:~/H-x86_64-pc-linux-gnu/cross-powerpc-linux-uclibc/usr/bin/
+  $ export PATH
+
+2. (Optional) If your system does not include libmpfr or libgmp, you will
+need to use the versions of these libraries included in the toolchain.
+
+  /* for 32-bit hosts */
+  $ LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/H-i686-pc-linux-gnu/cross-powerpc-linux-uclibc/usr/lib/
+  $ export LD_LIBRARY_PATH
+
+  /* for 64-bit hosts */
+  $ LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/H-x86_64-pc-linux-gnu/cross-powerpc-linux-uclibc/usr/lib/
+  $ export LD_LIBRARY_PATH
+
+
+Have fun!
+
