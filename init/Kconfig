@@ -1525,6 +1525,15 @@ config MAX_SWAPFILES_SHIFT
 	help
 	  Select the maximum number of swapfiles (5 for default).
 
+config MAX_USER_RT_PRIO
+	int "Number of realtime priority levels" if EXPERT
+	range 5 100
+	default 5 if EMBEDDED
+	default 100 if !EMEBEDDED
+	help
+	  This option allows reducing the size of the O(1) scheduler arrays.
+	  Lowering this value too much may result in decreased performance.
+
 config SHMEM
 	bool "Use full shmem filesystem" if EXPERT
 	default y
