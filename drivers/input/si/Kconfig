@@ -1,0 +1,14 @@
+#
+# Nintendo GameCube/Wii Serial Interface (SI) configuration
+#
+
+config GAMECUBE_SI
+	tristate "Nintendo GameCube/Wii Serial Interface (SI) support"
+	depends on GAMECUBE_COMMON
+	---help---
+	  Say Y here if you want to use the standard pads as joysticks or
+	  want to use a keyboard. Everything is autodetected.
+
+	  NOTE: Keyboard detection doesn't work 100%. Building this as a
+	  module is recommended, this way you can unload/load the driver
+	  to re-detect.
