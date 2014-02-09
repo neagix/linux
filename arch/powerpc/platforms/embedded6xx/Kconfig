@@ -83,11 +83,27 @@ config MV64X60
 	select CHECK_CACHE_COHERENCY
 
 config GAMECUBE_COMMON
+	select NOT_COHERENT_CACHE
+	default n
 	bool
+
+config GAMECUBE_UDBG
+	bool "Nintendo GameCube/Wii udbg support"
+	depends on GAMECUBE_COMMON
+	default n
+	help
+	  If you say yes to this option, you will be able to choose between
+	  several udbg drivers available for the Nintendo GameCube/Wii.
+
+	  If in doubt, say N here.
+
+choice
+	prompt "Nintendo GameCube/Wii udbg drivers"
+	depends on GAMECUBE_UDBG
 
 config USBGECKO_UDBG
 	bool "USB Gecko udbg console for the Nintendo GameCube/Wii"
-	depends on GAMECUBE_COMMON
+	depends on GAMECUBE_COMMON && PPC_EARLY_DEBUG_USBGECKO
 	help
 	  If you say yes to this option, support will be included for the
 	  USB Gecko adapter as an udbg console.
@@ -98,6 +114,46 @@ config USBGECKO_UDBG
 
 	  If in doubt, say N here.
 
+config GAMECUBE_VIDEO_UDBG
+	bool "Nintendo GameCube/Wii framebuffer udbg console"
+	depends on GAMECUBE_COMMON
+	select FONTS
+	select FONT_8x16
+ 	help
+	  If you say yes to this option, support will be included for a
+	  framebuffer based udbg console for the Nintendo GameCube/Wii.
+
+	  If in doubt, say N here.
+
+endchoice
+
+config GAMECUBE_RSW
+	bool "Nintendo GameCube/Wii reset switch/button"
+	depends on GAMECUBE_COMMON
+	default y
+	help
+	  If you say yes to this option, support will be included for the
+	  reset switch/button of the Nintendo GameCube/Wii.
+
+	  If in doubt, say Y here.
+
+config HLWD_GPIO
+	bool "Nintendo Wii (Hollywood) GPIO support"
+	depends on GPIOLIB && WII && I2C_CHARDEV
+	default y
+	help
+	  If you say yes to this option, support will be included for the
+	  GPIOs provided by the Hollywood chipset of the Nintendo Wii
+	  video game console.  Those GPIO lines control, for example,
+ 	  the sensor bar IR leds, the front led, or the eject switch
+	  of the disk unit.
+
+	  If in doubt, say Y here. 
+
+choice
+	prompt "Nintendo Console Support"
+	depends on EMBEDDED6xx
+	
 config GAMECUBE
 	bool "Nintendo-GameCube"
 	depends on EMBEDDED6xx
@@ -108,9 +164,56 @@ config GAMECUBE
 
 config WII
 	bool "Nintendo-Wii"
-	depends on EMBEDDED6xx
+	depends on EMBEDDED6xx && USB_ARCH_HAS_HCD
 	select GAMECUBE_COMMON
+	select HAVE_GENERIC_DMA_COHERENT
 	help
 	  Select WII if configuring for the Nintendo Wii.
 	  More information at: <http://gc-linux.sourceforge.net/>
+endchoice
 
+choice
+	prompt "Boot Method"
+	depends on WII
+	help
+	  While it's technically possible to build Kernels with both
+	  IOS and MINI support, it's not recommended as it neadlessly
+	  increases both Kernel size and memory consumption.  Instead,
+	  two sperate Kernels should be build and it's now enforced here by
+	  default for simplicity.  If the default MINI setup in "Whiite"
+	  format isn't used, it's recommended to first edit the boot
+	  parameter "root=" in the wii.dts file located in
+	  "arch/powerpc/boot/" before compiling.
+
+config STARLET_IOS
+	bool "Nintendo Wii Starlet IOS support"
+	select PPC_LIB_RHEAP
+	help
+	  Select STARLET_IOS if configuring to load through HBC.
+	  Although this mode generally requires less CPU, it lacks
+	  the ability to use it's full RAM capabilies and also lacks
+	  some hardward functionality.  Of it's limitations, the most
+ 	  noticiable are the lack of the DVD drive functionality and
+	  wireless capabilities (except Bluetooth).
+	  More information at: <http://gc-linux.sourceforge.net/>
+
+config STARLET_MINI
+	bool "Team Twiizers 'mini' firmware support"
+	select USB_ARCH_HAS_EHCI if USB_SUPPORT
+	select USB_ARCH_HAS_OHCI if USB_SUPPORT
+	help
+	  Select STARLET_MINI if configuring to load through BootMii.
+	  This mode is generally more unstable and requires more CPU,
+	  but gains the ability to utilize the hardward to its full
+	  potential.  All of the RAM, as well as most of the hardward
+	  in the Wii is supported in this mode.  There are a few
+	  limitations such as their being a lack of ability to read/write
+ 	  to Gamecube memory cards and not being unable to soft reboot.
+	  More information at: <http://gc-linux.sourceforge.net/>
+
+endchoice
+
+config HLWD_PIC
+	bool
+	depends on STARLET_MINI
+	default y

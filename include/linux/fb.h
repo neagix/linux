@@ -560,7 +560,13 @@ static inline struct apertures_struct *alloc_apertures(unsigned int max_num) {
 #define fb_readq __raw_readq
 #define fb_writeb __raw_writeb
 #define fb_writew __raw_writew
-#define fb_writel __raw_writel
+#ifndef CONFIG_FB_GAMECUBE	/* XXX Why? O' why? */
+#  define fb_writel __raw_writel
+#else
+   extern unsigned int vifb_writel(unsigned int, void *);
+#  define fb_writel(b, addr) vifb_writel(b, addr)
+#  define fb_writel_real(b, addr) (*(/*volatile*/ u32 __iomem *)(addr) = (b))
+#endif
 #define fb_writeq __raw_writeq
 #define fb_memset memset_io
 #define fb_memcpy_fromfb memcpy_fromio

@@ -233,6 +233,7 @@ struct hc_driver {
 #define	HCD_USB3	0x0040		/* USB 3.0 */
 #define	HCD_MASK	0x0070
 #define	HCD_BH		0x0100		/* URB complete in BH context */
+#define	HCD_BOUNCE_DMA_MEM	0x0200	/* HC needs bounced DMA memory */
 
 	/* called to init HCD and root hub */
 	int	(*reset) (struct usb_hcd *hcd);

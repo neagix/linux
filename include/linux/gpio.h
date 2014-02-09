@@ -136,6 +136,11 @@ static inline int gpio_set_debounce(unsigned gpio, unsigned debounce)
 	return -ENOSYS;
 }
 
+static inline int gpio_direction_is_output(unsigned gpio)
+{
+	return -EINVAL;
+}
+
 static inline int gpio_get_value(unsigned gpio)
 {
 	/* GPIO can never have been requested or set as {in,out}put */
