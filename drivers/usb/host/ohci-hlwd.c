@@ -230,9 +230,6 @@ static int ohci_hcd_hlwd_probe(struct platform_device *op)
 	if (usb_disabled())
 		goto out;
 
-	if (starlet_get_ipc_flavour() != STARLET_IPC_MINI)
-		goto out;
-
 	dev_dbg(&op->dev, "initializing " DRV_MODULE_NAME " USB Controller\n");
 
 	error = of_address_to_resource(dn, 0, &res);
