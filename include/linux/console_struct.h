@@ -20,6 +20,7 @@ struct vt_struct;
 struct uni_pagedir;
 
 #define NPAR 16
+#include <linux/console_decor.h>
 
 struct vc_data {
 	struct tty_port port;			/* Upper level data */
@@ -108,6 +109,8 @@ struct vc_data {
 	struct uni_pagedir *vc_uni_pagedir;
 	struct uni_pagedir **vc_uni_pagedir_loc; /* [!] Location of uni_pagedir variable for this console */
 	bool vc_panic_force_write; /* when oops/panic this VC can accept forced output/blanking */
+
+	struct vc_decor vc_decor;
 	/* additional information is in vt_kern.h */
 };
 
