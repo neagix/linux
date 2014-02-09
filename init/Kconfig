@@ -1491,6 +1491,20 @@ config MAX_CMDLINECONSOLES
 	  Allows to set the max number of console command line options.
 	  Smaller number smaller image. (8 for default)
 
+config FB_MODEDB
+	default n
+	bool "Configure a preferrable framebuffer mode" if EXPERT
+	depends on FB
+	help
+	  For a specific board there should be a preferrable framebuffer mode, which
+	  which may be not good to allow the users to change.  This can be hardcoded
+	  and will reduce the size of the modedb.  A example mode of 640x480 @ 60Hz
+	  (NTSC) was set here for GAMECUBE_COMMON (GameCube/Wii/vWii), anything else
+	  will require editing/adding the mode manually prior to compiling.
+	  (To add additional modes, edit: drivers/video/modedb.c)
+
+	  If unsure, say 
+
 config FB_MAX
 	int "Config max number of framebuffers" if EXPERT
 	range 1 32
