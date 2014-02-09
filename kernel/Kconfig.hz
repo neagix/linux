@@ -45,14 +45,78 @@ choice
 	 1000 Hz is the preferred choice for desktop systems and other
 	 systems requiring fast interactive responses to events.
 
+	config HZ_10
+		bool "10 HZ"
+	help
+	 10 Hz is an insanely low value considered to be the lowest (practical) frequency as
+	 anything below tends to be buggy.  Somewhat defeats the purpose of a tickless kernel.
+
+	 Generally, only servers should attempt this setting due to high latency during GUI related task.
+
+	config HZ_12
+		bool "12 HZ"
+	help
+	 12 Hz is an insanely low value that is targeted towards Servers and command-line systems.
+	 Somewhat defeats the purpose of a tickless kernel as power/CPU benefits are negligible.
+
+	 Generally, only Servers should attempt this setting due to high latency during GUI related task.
+
+	config HZ_16
+		bool "16 HZ"
+	help
+	 16 Hz is a low value that is meant mainly for Servers and command-line systems.  During
+	 moderate CPU load latency will be very high.  Desktop systems should avoid this value.
+
+	 Generally, only Servers should attempt this setting due to high latency during task.
+
+	config HZ_60
+		bool "60 HZ"
+	help
+	 60 Hz is the lowest value that low-end systems such as the Nintendo Wii can handle before
+	 simple task start to become choppy in GUI applications.  Not recommended for desktop use.
+
+	 Gives a slight overall throughput boost at the cost of responsiveness.
+
+	config HZ_175
+		bool "175 HZ"
+	help
+	 175 Hz is considered a compromise between the commonly used default Server value of 100
+	  and the default Desktop value of 250 used by most Linux distributions.
+
+	 Being over 1000, driver breakage is likely.
+
+	config HZ_2000
+		bool "2000 HZ"
+	help
+	 2000 Hz is an obscene value to use to run broken software that is Hz
+	 limited.
+
+	 Being over 1000, driver breakage is likely.
+
+	config HZ_5000
+		bool "5000 HZ"
+	help
+	 5000 Hz is an obscene value to use to run broken software that is Hz
+	 limited.
+
+	 Being over 1000, driver breakage is likely.
+
+
 endchoice
 
 config HZ
 	int
+	default 10 if HZ_10
+	default 12 if HZ_12
+	default 16 if HZ_16
+	default 60 if HZ_60
 	default 100 if HZ_100
+	default 175 if HZ_175
 	default 250 if HZ_250
 	default 300 if HZ_300
 	default 1000 if HZ_1000
+	default 2000 if HZ_2000
+	default 5000 if HZ_5000
 
 config SCHED_HRTICK
 	def_bool HIGH_RES_TIMERS && (!SMP || USE_GENERIC_SMP_HELPERS)

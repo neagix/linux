@@ -38,8 +38,10 @@ struct inet_hashinfo;
  * If time > 4sec, it is "slow" path, no recycling is required,
  * so that we select tick to get range about 4 seconds.
  */
-#if HZ <= 16 || HZ > 4096
-# error Unsupported: HZ <= 16 or HZ > 4096
+#if HZ < 10 || HZ > 16384
+# error Unsupported: HZ < 10 or HZ > 16384
+#elif HZ <= 16
+# define INET_TWDR_RECYCLE_TICK (2 + 2 - INET_TWDR_RECYCLE_SLOTS_LOG)
 #elif HZ <= 32
 # define INET_TWDR_RECYCLE_TICK (5 + 2 - INET_TWDR_RECYCLE_SLOTS_LOG)
 #elif HZ <= 64
@@ -54,8 +56,12 @@ struct inet_hashinfo;
 # define INET_TWDR_RECYCLE_TICK (10 + 2 - INET_TWDR_RECYCLE_SLOTS_LOG)
 #elif HZ <= 2048
 # define INET_TWDR_RECYCLE_TICK (11 + 2 - INET_TWDR_RECYCLE_SLOTS_LOG)
-#else
+#elif HZ <= 4096
 # define INET_TWDR_RECYCLE_TICK (12 + 2 - INET_TWDR_RECYCLE_SLOTS_LOG)
+#elif HZ <= 8192
+# define INET_TWDR_RECYCLE_TICK (13 + 2 - INET_TWDR_RECYCLE_SLOTS_LOG)
+#else
+# define INET_TWDR_RECYCLE_TICK (14 + 2 - INET_TWDR_RECYCLE_SLOTS_LOG)
 #endif
 
 /* TIME_WAIT reaping mechanism. */
