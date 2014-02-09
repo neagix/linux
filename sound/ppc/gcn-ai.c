@@ -523,7 +523,6 @@ static int ai_do_remove(struct device *dev)
  */
 
 static int ai_of_probe(struct platform_device *odev)
-
 {
 	struct resource dsp, ai;
 	int retval;
