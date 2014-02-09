@@ -89,6 +89,15 @@ config EQUALIZER
 	  To compile this driver as a module, choose M here: the module
 	  will be called eql.  If unsure, say N.
 
+config GAMECUBE_BBA
+	tristate "Nintendo GameCube ethernet BroadBand Adapter (BBA)"
+	depends on GAMECUBE_EXI && GAMECUBE
+	help
+	  Say Y here to add ethernet support for the Broadband Adapter (BBA).
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called gcn-bba.
+
 config NET_FC
 	bool "Fibre Channel driver support"
 	depends on SCSI && PCI

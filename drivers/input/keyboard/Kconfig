@@ -573,6 +573,17 @@ config KEYBOARD_SUNKBD
 	  To compile this driver as a module, choose M here: the
 	  module will be called sunkbd.
 
+config KEYBOARD_WII
+	tristate "Nintendo Wii USB keyboard IOS glue"
+	depends on (STARLET_IOS && !USB)
+	help
+	  Say Y here if you have a Nintendo Wii console running Linux and have
+	  a keyboard attached to one of its USB ports.
+	  This driver uses the IOS interface glue to access the USB keyboard.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called rvl-stkbd.
+
 config KEYBOARD_SH_KEYSC
 	tristate "SuperH KEYSC keypad support"
 	depends on ARCH_SHMOBILE || COMPILE_TEST

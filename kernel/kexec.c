@@ -98,11 +98,58 @@ static int kimage_alloc_init(struct kimage **rimage, unsigned long entry,
 	*rimage = image;
 	return 0;
 out_free_control_pages:
-	kimage_free_page_list(&image->control_pages);
-out_free_image:
-	kfree(image);
-	return ret;
 }
+
+static inline int kimage_add_page_with_flags(struct kimage *image,
+					     unsigned long page, int flags)
+{
+	int result;
+
+	page &= PAGE_MASK;
+	result = kimage_add_entry(image, page | (flags & ~PAGE_MASK));
+	if (result == 0)
+		image->destination += PAGE_SIZE;
+
+	return result;
+}
+
+static int kimage_add_page(struct kimage *image, unsigned long page)
+{
+	return kimage_add_page_with_flags(image, page, IND_SOURCE);
+}
+
+static int kimage_add_page_noalloc(struct kimage *image, unsigned long page)
+{
+	return kimage_add_page_with_flags(image, page, IND_SOURCE|IND_NOALLOC);
+}
+
+int kimage_add_preserved_region(struct kimage *image, unsigned long to,
+				       unsigned long from, int length)
+{
+	int result = 0;
+
+	if (length > 0) {
+		result = kimage_set_destination(image, to);
+		if (result < 0)
+			goto out;
+		while (length > 0) {
+			result = kimage_add_page_noalloc(image, from);
+			if (result < 0)
+				goto out;
+			from += PAGE_SIZE;
+			length -= PAGE_SIZE;
+		}
+	}
+out:
+	return result;
+}
+
+#define for_each_kimage_entry(image, ptr, entry) \
+	for (ptr = &image->head; (entry = *ptr) && !(entry & IND_DONE); \
+		ptr = (entry & IND_INDIRECTION)? \
+			 * done with it.
+			 */
+			ind = entry;
 
 static int do_kexec_load(unsigned long entry, unsigned long nr_segments,
 		struct kexec_segment __user *segments, unsigned long flags)
