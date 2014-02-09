@@ -55,6 +55,28 @@ config ATMEL_TCB_CLKSRC_BLOCK
 	  TC can be used for other purposes, such as PWM generation and
 	  interval timing.
 
+config GAMECUBE_GQR
+	tristate "Nintendo GameCube/Wii Graphic Quantization Registers (GQR)"
+	depends on GAMECUBE_COMMON
+	help
+          This option enables device driver support for the Gekko/Broadway
+	  processors' Graphic Quantization Registers.
+	  These registers are used with the psql and psqst instructions.
+	  The registers will appear in /proc/sys/gqr.
+
+config GAMECUBE_MI
+	tristate "Nintendo GameCube Memory Interface (MI)"
+	depends on GAMECUBE
+	help
+	  If you say yes to this option, support will be included for the
+	  Memory Interface (MI) of the Nintendo GameCube.
+
+	  The MI allows one to setup up to four protected memory regions,
+	  catching invalid accesses to them. The MI catches out of bounds
+	  memory accesses too.
+
+	  If in doubt, say N here.
+
 config IBM_ASM
 	tristate "Device driver for IBM RSA service processor"
 	depends on X86 && PCI && INPUT && EXPERIMENTAL

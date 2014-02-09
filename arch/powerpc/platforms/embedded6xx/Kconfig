@@ -90,3 +90,111 @@ config MPC10X_OPENPIC
 config MPC10X_STORE_GATHERING
 	bool "Enable MPC10x store gathering"
 	depends on MPC10X_BRIDGE
+
+config GAMECUBE
+	bool "Nintendo-GameCube"
+	depends on EMBEDDED6xx
+	select GAMECUBE_COMMON
+	help
+	  Select GAMECUBE if configuring for the Nintendo GameCube.
+	  More information at: <http://gc-linux.sourceforge.net/>
+
+config WII
+	bool "Nintendo-Wii"
+	depends on EMBEDDED6xx
+	select GAMECUBE_COMMON
+	select PPC_LIB_RHEAP if STARLET_IOS
+	select USB_ARCH_HAS_EHCI if STARLET_MINI
+	select USB_ARCH_HAS_OHCI if STARLET_MINI
+	select HAVE_GENERIC_DMA_COHERENT
+	help
+	  Select WII if configuring for the Nintendo Wii.
+	  More information at: <http://gc-linux.sourceforge.net/>
+
+config STARLET_IOS
+	bool "Nintendo Wii Starlet IOS support"
+	depends on WII
+	default y
+
+config STARLET_MINI
+	bool "Team Twiizers 'mini' firmware support"
+	depends on WII && EXPERIMENTAL
+	default y
+
+config FLIPPER_PIC
+	bool
+	depends on GAMECUBE_COMMON
+	default y
+
+config HLWD_PIC
+	bool
+	depends on STARLET_MINI
+	default y
+
+config GAMECUBE_COMMON
+	bool
+	select NOT_COHERENT_CACHE
+	select FLIPPER_PIC
+	default n
+
+config GAMECUBE_UDBG
+	bool "Nintendo GameCube/Wii udbg support"
+	depends on GAMECUBE_COMMON
+	default n
+	help
+	  If you say yes to this option, you will be able to choose between
+	  several udbg drivers available for the Nintendo GameCube/Wii.
+
+	  If in doubt, say N here.
+
+choice
+	prompt "Nintendo GameCube/Wii udbg drivers"
+	depends on GAMECUBE_UDBG
+
+config USBGECKO_UDBG
+	bool "USB Gecko udbg console for the Nintendo GameCube/Wii"
+	help
+	  If you say yes to this option, support will be included for the
+	  USB Gecko adapter as an udbg console.
+	  The USB Gecko is a EXI to USB Serial converter that can be plugged
+	  into a memcard slot in the Nintendo GameCube/Wii.
+
+	  This driver bypasses the EXI layer completely.
+
+	  If in doubt, say N here.
+
+config GAMECUBE_VIDEO_UDBG
+	bool "Nintendo GameCube/Wii framebuffer udbg console"
+	select FONTS
+	select FONT_8x16
+	help
+	  If you say yes to this option, support will be included for a
+	  framebuffer based udbg console for the Nintendo GameCube/Wii.
+
+	  If in doubt, say N here.
+
+endchoice
+
+config GAMECUBE_RSW
+	bool "Nintendo GameCube/Wii reset switch/button"
+	depends on GAMECUBE_COMMON
+	default y
+	help
+	  If you say yes to this option, support will be included for the
+	  reset switch/button of the Nintendo GameCube/Wii.
+
+	  If in doubt, say Y here.
+
+config HLWD_GPIO
+	bool "Nintendo Wii (Hollywood) GPIO support"
+	depends on GPIOLIB && WII
+	default y
+	help
+	  If you say yes to this option, support will be included for the
+	  GPIOs provided by the Hollywood chipset of the Nintendo Wii
+	  video game console.
+	  Those GPIO lines control, for example, the sensor bar IR leds,
+	  the front led, or the eject switch of the disk unit.
+
+	  If in doubt, say Y here.
+

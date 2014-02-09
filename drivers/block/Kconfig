@@ -63,6 +63,82 @@ config AMIGA_Z2RAM
 	  To compile this driver as a module, choose M here: the
 	  module will be called z2ram.
 
+config GAMECUBE_SD
+	tristate "Nintendo GameCube/Wii MMC/SD card"
+	depends on GAMECUBE_EXI
+	help
+	  This enables support for using SD and MMC cards through
+	  the Nintendo SD Card Adapter (DOL-019) or compatible hardware.
+
+	  You probably want to compile FAT support, and the required
+	  codepages, or mount will complain. See Filesystems -> DOS/FAT/NT
+	  filesystems and Filesystems -> Native Language Support
+
+	  Say Y if you want to include this driver in the kernel.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gcn-sd.
+
+config GAMECUBE_ARAM
+	tristate "Nintendo GameCube Auxiliary RAM (ARAM)"
+	depends on GAMECUBE
+	help
+	  This enables support for using the 16MB of ARAM found in the
+	  Nintendo GameCube as a block device.
+	  Say Y if you want to include this driver in the kernel.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gcn-aram.
+
+config GAMECUBE_DI
+	tristate "Nintendo GameCube Disk Interface (DI)"
+	depends on GAMECUBE
+	help
+	  This enables support for using the DVD drive unit found
+	  in the Nintendo GameCube.
+	  Say Y if you want to include this driver in the kernel.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gcn-di.
+
+config WII_MEM2
+	tristate "Nintendo Wii MEM2"
+	depends on WII
+	help
+	  This enables support for using the MEM2 found in the
+	  Nintendo Wii as a block device.
+	  Say Y if you want to include this driver in the kernel.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called rvl-mem2.
+
+config WII_SD
+	tristate "Nintendo Wii front slot MMC/SD"
+	depends on STARLET_IOS
+	help
+	  This enables support for MMC/SD cards using the front SD card
+	  slot of the Nintendo Wii.
+
+	  You probably want to compile FAT support, and the required
+	  codepages, or mount will complain. See Filesystems -> DOS/FAT/NT
+	  filesystems and Filesystems -> Native Language Support
+
+	  Say Y if you want to include this driver in the kernel.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called rvl-stsd.
+
+config WII_DI
+	tristate "Nintendo Wii Disk Interface (DI)"
+	depends on STARLET_MINI
+	help
+	  This enables support for using the DVD drive unit found
+	  in the Nintendo Wii.
+	  Say Y if you want to include this driver in the kernel.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called rvl-di.
+
 config BLK_DEV_XD
 	tristate "XT hard disk support"
 	depends on ISA && ISA_DMA_API

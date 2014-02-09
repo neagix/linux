@@ -1212,10 +1212,10 @@ EXPORT_SYMBOL_GPL(usb_hcd_unlink_urb_from_ep);
  *
  */
 
-static int hcd_alloc_coherent(struct usb_bus *bus,
-			      gfp_t mem_flags, dma_addr_t *dma_handle,
-			      void **vaddr_handle, size_t size,
-			      enum dma_data_direction dir)
+static int hcd_alloc_local_mem(struct usb_bus *bus,
+			       gfp_t mem_flags, dma_addr_t *dma_handle,
+			       void **vaddr_handle, size_t size,
+			       enum dma_data_direction dir)
 {
 	unsigned char *vaddr;
 
@@ -1242,7 +1242,7 @@ static int hcd_alloc_coherent(struct usb_bus *bus,
 	return 0;
 }
 
-static void hcd_free_coherent(struct usb_bus *bus, dma_addr_t *dma_handle,
+static void hcd_free_local_mem(struct usb_bus *bus, dma_addr_t *dma_handle,
 			      void **vaddr_handle, size_t size,
 			      enum dma_data_direction dir)
 {
@@ -1259,6 +1259,138 @@ static void hcd_free_coherent(struct usb_bus *bus, dma_addr_t *dma_handle,
 	*dma_handle = 0;
 }
 
+/*
+ * HCD_BOUNCE_DMA_MEM exists for platforms that have weird
+ * constraints accessing DMA coherent memory.
+ * In this case, buffer allocations are satisfied from normal memory
+ * and, only at the very last moment, before the actual transfer,
+ * buffers are copied to/from their corresponding DMA coherent bounce
+ * buffers.
+ *
+ * As an illustrative example, the Nintendo Wii video game console
+ * is a NOT_COHERENT_CACHE platform that is unable to safely perform
+ * non-32 bit uncached writes to the top 64MB of RAM (it actually
+ * _corrupts_ RAM if done).
+ * Thus, in that platform, DMA buffers cannot be directly used by kernel
+ * code unless the code guarantees that all write accesses to buffers
+ * are done in 32 bit chunks (which is not the case in the USB subsystem).
+ */
+
+/*
+ * XXX
+ * This is actually generic DMA code that could be moved to a more
+ * appropiate file.
+ *
+ */
+
+static void *dma_memcpy_to_coherent(void *dst, const void *src, size_t len)
+{
+	u32 *q = dst, *p = (void *)src;
+	u8 *s;
+
+	while (len >= 4) {
+		*q++ = *p++;
+		len -= 4;
+	}
+	s = (u8 *)p;
+	switch (len) {
+	case 3:
+		*q = s[0] << 24 | s[1] << 16 | s[2] << 8;
+		break;
+	case 2:
+		*q = s[0] << 24 | s[1] << 16;
+		break;
+	case 1:
+		*q = s[0] << 24;
+		break;
+	default:
+		break;
+	}
+	return dst;
+}
+
+static void *dma_memcpy_from_coherent(void *dst, const void *src, size_t len)
+{
+	u32 *q = dst, *p = (void *)src;
+	u32 v;
+	u8 *d;
+
+	while (len >= 4) {
+		*q++ = *p++;
+		len -= 4;
+	}
+	if (len) {
+		d = (u8 *)q;
+		v = p[0];
+		switch (len) {
+		case 3:
+			d[2] = (v >> 8) & 0xff;
+			/* FALL THROUGH */
+		case 2:
+			d[1] = (v >> 16) & 0xff;
+			/* FALL THROUGH */
+		case 1:
+			d[0] = (v >> 24) & 0xff;
+			break;
+		default:
+			break;
+		}
+	}
+	return dst;
+}
+
+struct dma_coherent_buffer_ctx {
+	unsigned char *vaddr;
+	dma_addr_t dma_handle;
+};
+
+static int dma_bounce_to_coherent(struct device *dev,
+				  gfp_t mem_flags, dma_addr_t *dma_handle,
+				  void **vaddr_handle, size_t size,
+				  enum dma_data_direction dir)
+{
+	struct dma_coherent_buffer_ctx ctx;
+	unsigned char *vaddr;
+	size_t up_size = _ALIGN_UP(size + sizeof(ctx),
+				   dma_get_cache_alignment());
+
+	ctx.vaddr = *vaddr_handle;
+	ctx.dma_handle = *dma_handle;
+
+	vaddr = dma_alloc_coherent(dev, up_size, dma_handle, mem_flags);
+	if (!vaddr)
+		return -ENOMEM;
+
+	memcpy(vaddr + up_size - sizeof(ctx), &ctx, sizeof(ctx));
+
+	if (dir == DMA_TO_DEVICE)
+		dma_memcpy_to_coherent(vaddr, *vaddr_handle, size);
+
+	*vaddr_handle = vaddr;
+	return 0;
+}
+
+static void dma_bounce_from_coherent(struct device *dev, dma_addr_t *dma_handle,
+				     void **vaddr_handle, size_t size,
+				     enum dma_data_direction dir)
+{
+	struct dma_coherent_buffer_ctx ctx;
+	unsigned char *vaddr = *vaddr_handle;
+	size_t up_size = _ALIGN_UP(size + sizeof(ctx),
+				   dma_get_cache_alignment());
+
+	memcpy(&ctx, vaddr + up_size - sizeof(ctx), sizeof(ctx));
+	vaddr = ctx.vaddr;
+
+	if (dir == DMA_FROM_DEVICE)
+		dma_memcpy_from_coherent(vaddr, *vaddr_handle, size);
+
+	dma_free_coherent(dev, up_size, *vaddr_handle, *dma_handle);
+
+	*vaddr_handle = vaddr;
+	*dma_handle = ctx.dma_handle;
+}
+
 static int map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 			   gfp_t mem_flags)
 {
@@ -1273,47 +1405,74 @@ static int map_urb_for_dma(struct usb_hcd *hcd, struct urb *urb,
 	if (is_root_hub(urb->dev))
 		return 0;
 
-	if (usb_endpoint_xfer_control(&urb->ep->desc)
-	    && !(urb->transfer_flags & URB_NO_SETUP_DMA_MAP)) {
-		if (hcd->self.uses_dma)
-			urb->setup_dma = dma_map_single(
-					hcd->self.controller,
-					urb->setup_packet,
-					sizeof(struct usb_ctrlrequest),
-					DMA_TO_DEVICE);
-		else if (hcd->driver->flags & HCD_LOCAL_MEM)
-			ret = hcd_alloc_coherent(
-					urb->dev->bus, mem_flags,
+	if (usb_endpoint_xfer_control(&urb->ep->desc)) {
+		if (hcd->driver->flags & HCD_BOUNCE_DMA_MEM) {
+			if (!(urb->transfer_flags & URB_NO_SETUP_DMA_MAP))
+				urb->setup_dma = 0;
+			ret = dma_bounce_to_coherent(
+					hcd->self.controller, mem_flags,
 					&urb->setup_dma,
 					(void **)&urb->setup_packet,
 					sizeof(struct usb_ctrlrequest),
 					DMA_TO_DEVICE);
+		} else if (!(urb->transfer_flags & URB_NO_SETUP_DMA_MAP)) {
+			if (hcd->self.uses_dma)
+				urb->setup_dma = dma_map_single(
+						hcd->self.controller,
+						urb->setup_packet,
+						sizeof(struct usb_ctrlrequest),
+						DMA_TO_DEVICE);
+			else if (hcd->driver->flags & HCD_LOCAL_MEM)
+				ret = hcd_alloc_local_mem(
+						urb->dev->bus, mem_flags,
+						&urb->setup_dma,
+						(void **)&urb->setup_packet,
+						sizeof(struct usb_ctrlrequest),
+						DMA_TO_DEVICE);
+		}
 	}
 
 	dir = usb_urb_dir_in(urb) ? DMA_FROM_DEVICE : DMA_TO_DEVICE;
-	if (ret == 0 && urb->transfer_buffer_length != 0
-	    && !(urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP)) {
-		if (hcd->self.uses_dma)
-			urb->transfer_dma = dma_map_single (
-					hcd->self.controller,
-					urb->transfer_buffer,
-					urb->transfer_buffer_length,
-					dir);
-		else if (hcd->driver->flags & HCD_LOCAL_MEM) {
-			ret = hcd_alloc_coherent(
-					urb->dev->bus, mem_flags,
+	if (ret == 0 && urb->transfer_buffer_length != 0) {
+		if (hcd->driver->flags & HCD_BOUNCE_DMA_MEM) {
+			if (!(urb->transfer_flags & URB_NO_SETUP_DMA_MAP))
+				urb->transfer_dma = 0;
+			ret = dma_bounce_to_coherent(
+					hcd->self.controller, mem_flags,
 					&urb->transfer_dma,
 					&urb->transfer_buffer,
 					urb->transfer_buffer_length,
 					dir);
 
-			if (ret && usb_endpoint_xfer_control(&urb->ep->desc)
-			    && !(urb->transfer_flags & URB_NO_SETUP_DMA_MAP))
-				hcd_free_coherent(urb->dev->bus,
-					&urb->setup_dma,
-					(void **)&urb->setup_packet,
-					sizeof(struct usb_ctrlrequest),
-					DMA_TO_DEVICE);
+			if (ret && usb_endpoint_xfer_control(&urb->ep->desc))
+				dma_bounce_from_coherent(hcd->self.controller,
+						&urb->setup_dma,
+						(void **)&urb->setup_packet,
+						sizeof(struct usb_ctrlrequest),
+						DMA_TO_DEVICE);
+		} else if (!(urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP)) {
+			if (hcd->self.uses_dma)
+				urb->transfer_dma = dma_map_single(
+						hcd->self.controller,
+						urb->transfer_buffer,
+						urb->transfer_buffer_length,
+						dir);
+			else if (hcd->driver->flags & HCD_LOCAL_MEM) {
+				ret = hcd_alloc_local_mem(
+						urb->dev->bus, mem_flags,
+						&urb->transfer_dma,
+						&urb->transfer_buffer,
+						urb->transfer_buffer_length,
+						dir);
+
+				if (ret &&
+				    usb_endpoint_xfer_control(&urb->ep->desc))
+					hcd_free_local_mem(urb->dev->bus,
+						&urb->setup_dma,
+						(void **)&urb->setup_packet,
+						sizeof(struct usb_ctrlrequest),
+						DMA_TO_DEVICE);
+			}
 		}
 	}
 	return ret;
@@ -1326,32 +1485,49 @@ static void unmap_urb_for_dma(struct usb_hcd *hcd, struct urb *urb)
 	if (is_root_hub(urb->dev))
 		return;
 
-	if (usb_endpoint_xfer_control(&urb->ep->desc)
-	    && !(urb->transfer_flags & URB_NO_SETUP_DMA_MAP)) {
-		if (hcd->self.uses_dma)
-			dma_unmap_single(hcd->self.controller, urb->setup_dma,
-					sizeof(struct usb_ctrlrequest),
-					DMA_TO_DEVICE);
-		else if (hcd->driver->flags & HCD_LOCAL_MEM)
-			hcd_free_coherent(urb->dev->bus, &urb->setup_dma,
+	if (usb_endpoint_xfer_control(&urb->ep->desc)) {
+		if (hcd->driver->flags & HCD_BOUNCE_DMA_MEM)
+			dma_bounce_from_coherent(hcd->self.controller,
+					&urb->setup_dma,
 					(void **)&urb->setup_packet,
 					sizeof(struct usb_ctrlrequest),
 					DMA_TO_DEVICE);
+		else if (!(urb->transfer_flags & URB_NO_SETUP_DMA_MAP)) {
+			if (hcd->self.uses_dma)
+				dma_unmap_single(hcd->self.controller,
+						 urb->setup_dma,
+						 sizeof(struct usb_ctrlrequest),
+						 DMA_TO_DEVICE);
+			else if (hcd->driver->flags & HCD_LOCAL_MEM)
+				hcd_free_local_mem(urb->dev->bus,
+					&urb->setup_dma,
+					(void **)&urb->setup_packet,
+					sizeof(struct usb_ctrlrequest),
+					DMA_TO_DEVICE);
+		}
 	}
 
 	dir = usb_urb_dir_in(urb) ? DMA_FROM_DEVICE : DMA_TO_DEVICE;
-	if (urb->transfer_buffer_length != 0
-	    && !(urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP)) {
-		if (hcd->self.uses_dma)
-			dma_unmap_single(hcd->self.controller,
-					urb->transfer_dma,
-					urb->transfer_buffer_length,
-					dir);
-		else if (hcd->driver->flags & HCD_LOCAL_MEM)
-			hcd_free_coherent(urb->dev->bus, &urb->transfer_dma,
-					&urb->transfer_buffer,
-					urb->transfer_buffer_length,
-					dir);
+	if (urb->transfer_buffer_length != 0) {
+		if (hcd->driver->flags & HCD_BOUNCE_DMA_MEM)
+			dma_bounce_from_coherent(hcd->self.controller,
+						&urb->transfer_dma,
+						&urb->transfer_buffer,
+						urb->transfer_buffer_length,
+						dir);
+		else if (!(urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP)) {
+			if (hcd->self.uses_dma)
+				dma_unmap_single(hcd->self.controller,
+						urb->transfer_dma,
+						urb->transfer_buffer_length,
+						dir);
+			else if (hcd->driver->flags & HCD_LOCAL_MEM)
+				hcd_free_local_mem(urb->dev->bus,
+						&urb->transfer_dma,
+						&urb->transfer_buffer,
+						urb->transfer_buffer_length,
+						dir);
+		}
 	}
 }
 
@@ -1972,6 +2148,10 @@ struct usb_hcd *usb_create_hcd (const struct hc_driver *driver,
 	}
 	dev_set_drvdata(dev, hcd);
 	kref_init(&hcd->kref);
+
+	/* pretend we can't do DMA */
+	if (driver->flags & HCD_BOUNCE_DMA_MEM)
+		dev->dma_mask = NULL;
 
 	usb_bus_init(&hcd->self);
 	hcd->self.controller = dev;

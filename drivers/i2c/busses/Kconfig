@@ -354,13 +354,25 @@ config I2C_DESIGNWARE
 	  This driver can also be built as a module.  If so, the module
 	  will be called i2c-designware.
 
-config I2C_GPIO
-	tristate "GPIO-based bitbanging I2C"
+config I2C_GPIO_COMMON
+	tristate
 	depends on GENERIC_GPIO
 	select I2C_ALGOBIT
+	default n
+
+config I2C_GPIO
+	tristate "GPIO-based bitbanging I2C"
+	select I2C_GPIO_COMMON
 	help
 	  This is a very simple bitbanging I2C driver utilizing the
 	  arch-neutral GPIO API to control the SCL and SDA lines.
+
+config I2C_GPIO_OF
+	tristate "GPIO-based bitbanging I2C driver with OF bindings"
+	select I2C_GPIO_COMMON
+	help
+	  This option allows the declaration of GPIO-based I2C devices
+	  using a device tree source.
 
 config I2C_HIGHLANDER
 	tristate "Highlander FPGA SMBus interface"

@@ -115,6 +115,9 @@ void *hcd_buffer_alloc(
 		return kmalloc(size, mem_flags);
 	}
 
+	/* make sure that we allocate correctly aligned dma memory */
+	size = _ALIGN_UP(size, dma_get_cache_alignment());
+
 	for (i = 0; i < HCD_BUFFER_POOLS; i++) {
 		if (size <= pool_max [i])
 			return dma_pool_alloc(hcd->pool [i], mem_flags, dma);
@@ -140,6 +143,9 @@ void hcd_buffer_free(
 		kfree(addr);
 		return;
 	}
+
+	/* account for the real size */
+	size = _ALIGN_UP(size, dma_get_cache_alignment());
 
 	for (i = 0; i < HCD_BUFFER_POOLS; i++) {
 		if (size <= pool_max [i]) {

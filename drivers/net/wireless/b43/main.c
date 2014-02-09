@@ -68,6 +68,11 @@ MODULE_LICENSE("GPL");
 
 MODULE_FIRMWARE(B43_SUPPORTED_FIRMWARE_ID);
 
+#ifdef CONFIG_B43_DEFAULT_QOS_OFF
+#define B43_QOS_DEFAULT 0
+#else
+#define B43_QOS_DEFAULT 1
+#endif
 
 static int modparam_bad_frames_preempt;
 module_param_named(bad_frames_preempt, modparam_bad_frames_preempt, int, 0444);
@@ -90,7 +95,7 @@ static int modparam_hwtkip;
 module_param_named(hwtkip, modparam_hwtkip, int, 0444);
 MODULE_PARM_DESC(hwtkip, "Enable hardware tkip.");
 
-static int modparam_qos = 1;
+static int modparam_qos = B43_QOS_DEFAULT;
 module_param_named(qos, modparam_qos, int, 0444);
 MODULE_PARM_DESC(qos, "Enable QOS support (default on)");
 

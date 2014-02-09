@@ -16,6 +16,28 @@ typedef __u32 __bitwise __hc32;
 typedef __u16 __bitwise __hc16;
 
 /*
+ * Some platforms have weird constraints when accessing memory.
+ *
+ * For example, the Nintendo Wii video game console is unable to perform
+ * non-32 bit writes to non-cached memory for its second block of 64MB of RAM.
+ * As this platform also requires CONFIG_NOT_COHERENT_CACHE, all memory
+ * allocated using the dma memory allocation functions can only be written
+ * using 32-bit accesses.
+ *
+ * Because of this constraint, as a workaround, we make sure that all
+ * fields in struct ed and td (which are allocated from dma pools) are
+ * always 32 bit fields.
+ * Note that the remaining structs allocated from dma-able memory are already
+ * 32 bit fields.
+ */
+#ifdef CONFIG_USB_OHCI_HCD_HLWD
+#define ohci_fld(type)  u32
+#else
+#define ohci_fld(type)  type
+#endif
+
+
+/*
  * OHCI Endpoint Descriptor (ED) ... holds TD queue
  * See OHCI spec, section 4.2
  *
@@ -51,21 +73,21 @@ struct ed {
 	/* create --> IDLE --> OPER --> ... --> IDLE --> destroy
 	 * usually:  OPER --> UNLINK --> (IDLE | OPER) --> ...
 	 */
-	u8			state;		/* ED_{IDLE,UNLINK,OPER} */
+	ohci_fld(u8)		state;		/* ED_{IDLE,UNLINK,OPER} */
 #define ED_IDLE		0x00		/* NOT linked to HC */
 #define ED_UNLINK	0x01		/* being unlinked from hc */
 #define ED_OPER		0x02		/* IS linked to hc */
 
-	u8			type;		/* PIPE_{BULK,...} */
+	ohci_fld(u8)		type;		/* PIPE_{BULK,...} */
 
 	/* periodic scheduling params (for intr and iso) */
-	u8			branch;
-	u16			interval;
-	u16			load;
-	u16			last_iso;	/* iso only */
+	ohci_fld(u8)		branch;
+	ohci_fld(u16)		interval;
+	ohci_fld(u16)		load;
+	ohci_fld(u16)		last_iso;	/* iso only */
 
 	/* HC may see EDs on rm_list until next frame (frame_no == tick) */
-	u16			tick;
+	ohci_fld(u16)		tick;
 } __attribute__ ((aligned(16)));
 
 #define ED_MASK	((u32)~0x0f)		/* strip hw status in low addr bits */
@@ -118,7 +140,7 @@ struct td {
 	__hc16		hwPSW [MAXPSW];
 
 	/* rest are purely for the driver's use */
-	__u8		index;
+	ohci_fld(__u8)	index;
 	struct ed	*ed;
 	struct td	*td_hash;	/* dma-->td hashtable */
 	struct td	*next_dl_td;
@@ -403,7 +425,8 @@ struct ohci_hcd {
 #define	OHCI_QUIRK_HUB_POWER	0x100			/* distrust firmware power/oc setup */
 #define	OHCI_QUIRK_AMD_ISO	0x200			/* ISO transfers*/
 #define	OHCI_QUIRK_AMD_PREFETCH	0x400			/* pre-fetch for ISO transfer */
-#define	OHCI_QUIRK_SHUTDOWN	0x800			/* nVidia power bug */
+#define	OHCI_QUIRK_WII		0x800			/* Hollywood chipset */
+#define	OHCI_QUIRK_SHUTDOWN	0x1000			/* nVidia power bug */
 	// there are also chip quirks/bugs in init logic
 
 	struct work_struct	nec_work;	/* Worker for NEC quirk */
@@ -546,6 +569,37 @@ static inline struct usb_hcd *ohci_to_hcd (const struct ohci_hcd *ohci)
 #define big_endian_mmio(ohci)	0		/* only little endian */
 #endif
 
+#ifdef CONFIG_USB_OHCI_HCD_HLWD
+
+#include <asm/starlet-mini.h>
+
+static inline unsigned int _ohci_readl(const struct ohci_hcd *ohci,
+				       __hc32 __iomem *regs)
+{
+	return in_be32(regs);
+}
+
+static inline void _ohci_writel(const struct ohci_hcd *ohci,
+				const unsigned int val, __hc32 __iomem *regs)
+{
+	out_be32(regs, val);
+}
+
+extern void ohci_hlwd_control_quirk(struct ohci_hcd *ohci);
+extern void ohci_hlwd_bulk_quirk(struct ohci_hcd *ohci);
+
+#else
+
+static inline void ohci_hlwd_control_quirk(struct ohci_hcd *ohci)
+{
+	return;
+}
+
+static inline void ohci_hlwd_bulk_quirk(struct ohci_hcd *ohci)
+{
+	return;
+}
+
 /*
  * Big-endian read/write functions are arch-specific.
  * Other arches can be added if/when they're needed.
@@ -574,6 +628,8 @@ static inline void _ohci_writel (const struct ohci_hcd *ohci,
 		writel (val, regs);
 #endif
 }
+
+#endif /* CONFIG_USB_OHCI_HCD_HLWD */
 
 #ifdef CONFIG_ARCH_LH7A404
 /* Marc Singer: at the time this code was written, the LH7A404

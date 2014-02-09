@@ -180,6 +180,8 @@ source "drivers/input/serio/Kconfig"
 
 source "drivers/input/gameport/Kconfig"
 
+source "drivers/input/si/Kconfig"
+
 endmenu
 
 endmenu

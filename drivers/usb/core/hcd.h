@@ -169,12 +169,13 @@ struct hc_driver {
 	irqreturn_t	(*irq) (struct usb_hcd *hcd);
 
 	int	flags;
-#define	HCD_MEMORY	0x0001		/* HC regs use memory (else I/O) */
-#define	HCD_LOCAL_MEM	0x0002		/* HC needs local memory */
-#define	HCD_USB11	0x0010		/* USB 1.1 */
-#define	HCD_USB2	0x0020		/* USB 2.0 */
-#define	HCD_USB3	0x0040		/* USB 3.0 */
-#define	HCD_MASK	0x0070
+#define	HCD_MEMORY		0x0001	/* HC regs use memory (else I/O) */
+#define	HCD_LOCAL_MEM		0x0002	/* HC needs local memory */
+#define	HCD_BOUNCE_DMA_MEM	0x0004	/* HC needs bounced DMA memory */
+#define	HCD_USB11		0x0010	/* USB 1.1 */
+#define	HCD_USB2		0x0020	/* USB 2.0 */
+#define	HCD_USB3		0x0040	/* USB 3.0 */
+#define	HCD_MASK		0x0070
 
 	/* called to init HCD and root hub */
 	int	(*reset) (struct usb_hcd *hcd);

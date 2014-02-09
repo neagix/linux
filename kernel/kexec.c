@@ -580,16 +580,27 @@ static int kimage_set_destination(struct kimage *image,
 }
 
 
-static int kimage_add_page(struct kimage *image, unsigned long page)
+static inline int kimage_add_page_with_flags(struct kimage *image,
+					     unsigned long page, int flags)
 {
 	int result;
 
 	page &= PAGE_MASK;
-	result = kimage_add_entry(image, page | IND_SOURCE);
+	result = kimage_add_entry(image, page | (flags & ~PAGE_MASK));
 	if (result == 0)
 		image->destination += PAGE_SIZE;
 
 	return result;
+}
+
+static int kimage_add_page(struct kimage *image, unsigned long page)
+{
+	return kimage_add_page_with_flags(image, page, IND_SOURCE);
+}
+
+static int kimage_add_page_noalloc(struct kimage *image, unsigned long page)
+{
+	return kimage_add_page_with_flags(image, page, IND_SOURCE|IND_NOALLOC);
 }
 
 
@@ -608,6 +619,27 @@ static void kimage_terminate(struct kimage *image)
 		image->entry++;
 
 	*image->entry = IND_DONE;
+}
+
+int kimage_add_preserved_region(struct kimage *image, unsigned long to,
+				       unsigned long from, int length)
+{
+	int result = 0;
+
+	if (length > 0) {
+		result = kimage_set_destination(image, to);
+		if (result < 0)
+			goto out;
+		while (length > 0) {
+			result = kimage_add_page_noalloc(image, from);
+			if (result < 0)
+				goto out;
+			from += PAGE_SIZE;
+			length -= PAGE_SIZE;
+		}
+	}
+out:
+	return result;
 }
 
 #define for_each_kimage_entry(image, ptr, entry) \
@@ -641,9 +673,11 @@ static void kimage_free(struct kimage *image)
 			 * done with it.
 			 */
 			ind = entry;
+		} else if (entry & IND_SOURCE) {
+			/* free only entries that we really allocated */
+			if (!(entry & IND_NOALLOC))
+				kimage_free_entry(entry);
 		}
-		else if (entry & IND_SOURCE)
-			kimage_free_entry(entry);
 	}
 	/* Free the final indirection page */
 	if (ind & IND_INDIRECTION)

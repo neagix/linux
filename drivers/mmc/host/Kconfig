@@ -119,6 +119,16 @@ config MMC_SDHCI_S3C_DMA
 
 	  YMMV.
 
+config MMC_SDHCI_HLWD
+	tristate "Nintendo Wii (Hollywood) SDHCI support"
+	depends on MMC_SDHCI && STARLET_MINI
+	select MMC_SDHCI_IO_ACCESSORS
+	help
+	  This selects the Nintendo Wii Secure Digital Host Controller
+	  Interface contained in the Hollywood chipset.
+
+	  If unsure, say N.
+
 config MMC_OMAP
 	tristate "TI OMAP Multimedia Card Interface support"
 	depends on ARCH_OMAP

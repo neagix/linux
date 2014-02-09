@@ -31,4 +31,5 @@ obj-$(CONFIG_USB_SL811_CS)	+= sl811_cs.o
 obj-$(CONFIG_USB_U132_HCD)	+= u132-hcd.o
 obj-$(CONFIG_USB_R8A66597_HCD)	+= r8a66597-hcd.o
 obj-$(CONFIG_USB_ISP1760_HCD)	+= isp1760.o
+obj-$(CONFIG_USB_WII_HCD)	+= rvl-sthcd.o
 obj-$(CONFIG_USB_HWA_HCD)	+= hwa-hc.o
