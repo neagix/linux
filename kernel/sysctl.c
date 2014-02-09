@@ -2596,7 +2596,6 @@ int proc_do_large_bitmap(struct ctl_table *table, int write,
 			}
 
 			bitmap_set(tmp_bitmap, val_a, val_b - val_a + 1);
-			first = 0;
 			proc_skip_char(&kbuf, &left, '\n');
 		}
 		free_page(page);
