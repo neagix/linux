@@ -484,7 +484,10 @@ void __init change_floppy(char *fmt, ...)
 	va_start(args, fmt);
 	vsprintf(buf, fmt, args);
 	va_end(args);
-	fd = sys_open("/dev/root", O_RDWR | O_NDELAY, 0);
+	if (saved_root_name[0])
+		fd = sys_open(saved_root_name, O_RDWR | O_NDELAY, 0);
+	else
+		fd = sys_open("/dev/root", O_RDWR | O_NDELAY, 0);
 	if (fd >= 0) {
 		sys_ioctl(fd, FDEJECT, 0);
 		sys_close(fd);
@@ -528,7 +531,13 @@ void __init mount_root(void)
 #endif
 #ifdef CONFIG_BLOCK
 	create_dev("/dev/root", ROOT_DEV);
-	mount_block_root("/dev/root", root_mountflags);
+	if (saved_root_name[0]) {
+		create_dev(saved_root_name, ROOT_DEV);
+		mount_block_root(saved_root_name, root_mountflags);
+	} else {
+		create_dev("/dev/root", ROOT_DEV);
+		mount_block_root("/dev/root", root_mountflags);
+	}
 #endif
 }
 
