@@ -262,6 +262,8 @@ Fill:
 		pos = next;
 	}
 	m->op->stop(m, p);
+	if (err)
+		goto Done;
 	n = min(m->count, size);
 	err = copy_to_user(buf, m->buf, n);
 	if (err)
