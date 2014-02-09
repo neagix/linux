@@ -382,6 +382,25 @@ config NOMMU_INITIAL_TRIM_EXCESS
 
 	  See Documentation/nommu-mmap.txt for more information.
 
+config VM_MAX_READAHEAD
+	int "Default max vm readahead size (16-4096 kbytes)"
+	default "512" if S390
+	default "128"
+	range 16 4096
+	help
+	  This entry specifies the default max size used to read ahead
+	  sequential access patterns in kilobytes.
+
+	  The value can be configured per device queue in /dev, this setting
+	  just defines the default.
+
+	  The default is 128 which it used to be for years and should suit all
+	  kind of linux targets.
+
+	  Smaller values might be useful for very memory constrained systems
+	  like some embedded systems to avoid page cache trashing, while larger
+	  values can be beneficial to server installations.
+
 config TRANSPARENT_HUGEPAGE
 	bool "Transparent Hugepage Support"
 	depends on HAVE_ARCH_TRANSPARENT_HUGEPAGE
