@@ -33,7 +33,8 @@
 		/* bootargs = "nobats root=/dev/nfs nfsroot=192.168.001.253:/nfsroot/cube ip=on video=gcnfb:tv=NTSC force_keyboard_port=4"; */
 
 		/* root filesystem on 2nd partition of SD card, whiite style  */
-		bootargs = "nobats root=/dev/mmcblk0p2 rootwait force_keyboard_port=4 video=gcnfb:60Hz,tv=NTSC placeholder_for_additional_kernel_options_targetted_at_hexedit_lovers";
+		bootargs = "nobats root=/dev/mmcblk0p2 rootwait force_keyboard_port=4 video=gcnfb:60Hz tv=auto loader=mini quiet nostalgic_mini_placeholder_for_additional_kernel_options_appended_here_using_a_hex_editor";
+		/*bootargs = "nobats root=/dev/rvlsda2 rootwait force_keyboard_port=4 video=gcnfb:60Hz tv=auto loader=ios quiet nostalgic_ios_placeholder_for_additional_kernel_options_appended_here_using_a_hex_editor";*/
 		linux,stdout-path = &USBGECKO0;
 	};
 
@@ -236,6 +237,24 @@
 			reg = <0x0d8000c0 0x4>;
 			gpio-controller;
 			#gpio-cells = <2>;
+		};
+		
+		gpio-leds {
+			compatible = "gpio-leds";
+			
+			slot {
+				label = "Slot";
+				gpios = <&gpio0 26 0>;
+				linux,default-trigger = "mmc0";
+			};
+
+			sensor {
+				label = "Sensorbar";
+				gpios = <&gpio0 23 0>;
+				linux,default-trigger = "default-on";
+				default-state="on";
+			};
+			
 		};
 
 		i2c-video {
