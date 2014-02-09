@@ -61,12 +61,6 @@ enum {
 
 #define MAX_LOCKDEP_CHAIN_HLOCKS (MAX_LOCKDEP_CHAINS*5)
 
-/*
- * Stack-trace: tightly packed array of stack backtrace
- * addresses. Protected by the hash_lock.
- */
-#define MAX_STACK_TRACE_ENTRIES	262144UL
-
 extern struct list_head all_lock_classes;
 extern struct lock_chain lock_chains[];
 
