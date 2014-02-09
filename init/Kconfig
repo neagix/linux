@@ -1468,6 +1468,14 @@ config CHRDEV_MAJOR_HASH_SIZE
 
 	  For a normal desktop machine, 128 may be a preferred value.
 
+config MAX_CMDLINECONSOLES
+	int "Set max number of console command line options" if EXPERT
+	range 1 8
+	default 8
+	help
+	  Allows to set the max number of console command line options.
+	  Smaller number smaller image. (8 for default)
+
 config FB_MAX
 	int "Config max number of framebuffers" if EXPERT
 	range 1 32
