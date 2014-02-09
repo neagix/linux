@@ -34,9 +34,9 @@ i2c-video {
 	scl-is-output-only = <1>;
 	udelay = <2>;
 
-	audio-video-encoder {
+	AVE: audio-video-encoder@70 {
 		compatible = "nintendo,wii-ave-rvl";
-		reg = <70>;
+		reg = <0x70>;
 	};
 };
 

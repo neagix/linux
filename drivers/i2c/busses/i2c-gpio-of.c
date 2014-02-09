@@ -32,7 +32,6 @@
  */
 
 static int i2c_gpio_of_probe(struct platform_device *odev)
-
 {
 	struct i2c_gpio_platform_data *pdata;
 	struct i2c_adapter *adap;
@@ -77,9 +76,10 @@ static int i2c_gpio_of_probe(struct platform_device *odev)
 	prop = of_get_property(odev->dev.of_node, "timeout", NULL);
 	if (prop)
 		pdata->timeout =  msecs_to_jiffies(*prop);
-	/* Not sure if odev->id is correct for below, changes in 2.6.34 from odev->node->node */
-	error = i2c_gpio_adapter_probe(adap, pdata, &odev->dev, odev->id,
-					THIS_MODULE);
+
+	error = i2c_gpio_adapter_probe(adap, pdata, &odev->dev,
+										odev->dev.of_node->phandle, THIS_MODULE);
+
 	if (error)
 		goto err_probe;
 

@@ -684,7 +684,6 @@ static int si_do_shutdown(struct device *dev)
  */
 
 static int si_of_probe(struct platform_device *odev)
-
 {
 	struct resource mem;
 	int retval;
