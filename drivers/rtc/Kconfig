@@ -573,6 +573,15 @@ config RTC_DRV_AB3100
 	  Select this to enable the ST-Ericsson AB3100 Mixed Signal IC RTC
 	  support. This chip contains a battery- and capacitor-backed RTC.
 
+config RTC_DRV_GCN
+	bool "Nintendo GameCube/Wii Real Time Clock and SRAM"
+	depends on GAMECUBE_EXI
+	default y
+	help
+	  If you say yes to this option, support will be included for the
+	  Real Time Clock and SRAM of the Nintendo GameCube/Wii.
+
+	  If in doubt, say Y here.
 
 comment "on-CPU RTC drivers"
 

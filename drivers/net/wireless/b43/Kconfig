@@ -146,3 +146,14 @@ config B43_FORCE_PIO
 	  Say N!
 	  This is only for debugging the PIO engine code. You do
 	  _NOT_ want to enable this.
+
+config B43_DEFAULT_QOS_OFF
+	bool "Start with QoS disabled"
+	depends on B43
+	---help---
+	  This will start the driver with Quality Of Service disabled.
+
+	  Say Y if you are using an OpenFWWF firmware without QoS support
+	  and building the b43 driver in-kernel.
+	  Otherwise, say N.
+

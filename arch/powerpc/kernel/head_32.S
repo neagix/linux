@@ -164,6 +164,9 @@ __after_mmu_off:
 #ifdef CONFIG_PPC_EARLY_DEBUG_CPM
 	bl	setup_cpm_bat
 #endif
+#ifdef CONFIG_PPC_EARLY_DEBUG_USBGECKO
+	bl	setup_usbgecko_bat
+#endif
 
 /*
  * Call setup_cpu for CPU 0 and initialize 6xx Idle
@@ -1200,6 +1203,24 @@ setup_cpm_bat:
 	ori	r11, r11, (BL_1M << 2) | 2
 	mtspr	SPRN_DBAT1U, r11
 
+	blr
+#endif
+
+#ifdef CONFIG_PPC_EARLY_DEBUG_USBGECKO
+setup_usbgecko_bat:
+	/* prepare a BAT for early io */
+	lis	r8, 0x0c00
+	ori	r8, r8, 0x002a	/* uncached, guarded ,rw */
+	lis	r11, 0xcc00
+	ori	r11, r11, 0x3	/* 128K */
+#ifdef CONFIG_WII
+	oris	r8, r8, 0x0100
+	oris	r11, r11, 0x0100
+#endif
+	mtspr	SPRN_DBAT1L, r8
+	mtspr	SPRN_DBAT1U, r11
+	sync
+	isync
 	blr
 #endif
 

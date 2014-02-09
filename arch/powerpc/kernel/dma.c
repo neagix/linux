@@ -27,6 +27,9 @@ void *dma_direct_alloc_coherent(struct device *dev, size_t size,
 {
 	void *ret;
 #ifdef CONFIG_NOT_COHERENT_CACHE
+	if (dma_alloc_from_coherent(dev, size, dma_handle, &ret))
+		return ret;
+
 	ret = __dma_alloc_coherent(dev, size, dma_handle, flag);
 	if (ret == NULL)
 		return NULL;
@@ -54,6 +57,8 @@ void dma_direct_free_coherent(struct device *dev, size_t size,
 			      void *vaddr, dma_addr_t dma_handle)
 {
 #ifdef CONFIG_NOT_COHERENT_CACHE
+	if (dma_release_from_coherent(dev, get_order(size), vaddr))
+		return;
 	__dma_free_coherent(size, vaddr);
 #else
 	free_pages((unsigned long)vaddr, get_order(size));

@@ -230,6 +230,9 @@ xpedite52*)
     link_address='0x1400000'
     platformo=$object/cuboot-85xx.o
     ;;
+wii|gamecube)
+    link_address='0x600000'
+    ;;
 esac
 
 vmz="$tmpdir/`basename \"$kernel\"`.$ext"

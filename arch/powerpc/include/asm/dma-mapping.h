@@ -17,6 +17,7 @@
 #include <linux/dma-debug.h>
 #include <asm/io.h>
 #include <asm/swiotlb.h>
+#include <asm-generic/dma-coherent.h>
 
 #define DMA_ERROR_CODE		(~(dma_addr_t)0x0)
 

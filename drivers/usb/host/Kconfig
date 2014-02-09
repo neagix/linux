@@ -113,6 +113,14 @@ config USB_EHCI_HCD_PPC_OF
 	  Enables support for the USB controller present on the PowerPC
 	  OpenFirmware platform bus.
 
+config USB_EHCI_HCD_HLWD
+	bool "Nintendo Wii (Hollywood) EHCI USB controller support"
+	depends on USB_EHCI_HCD && STARLET_MINI
+	default y
+	---help---
+	  Say Y here to support the EHCI USB controller found in the
+	  Hollywood chipset of the Nintendo Wii video game console.
+
 config USB_W90X900_EHCI
 	bool "W90X900(W90P910) EHCI support"
 	depends on USB_EHCI_HCD && ARCH_W90X900
@@ -220,6 +228,15 @@ config USB_OHCI_HCD_PPC_OF
 	bool
 	depends on USB_OHCI_HCD && PPC_OF
 	default USB_OHCI_HCD_PPC_OF_BE || USB_OHCI_HCD_PPC_OF_LE
+
+config USB_OHCI_HCD_HLWD
+	bool "Nintendo Wii (Hollywood) OHCI USB controller support"
+	depends on USB_OHCI_HCD && STARLET_MINI
+	select USB_OHCI_LITTLE_ENDIAN
+	default y
+	---help---
+	  Say Y here to support the OHCI USB controller found in the
+	  Hollywood chipset of the Nintendo Wii video game console.
 
 config USB_OHCI_HCD_PCI
 	bool "OHCI support for PCI-bus USB controllers"
@@ -353,6 +370,25 @@ config USB_R8A66597_HCD
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called r8a66597-hcd.
+
+config USB_WII_HCD
+	tristate "Nintendo Wii HCD support"
+	depends on USB && STARLET_IOS && !HIGHMEM && EXPERIMENTAL
+	help
+	  The Nintendo Wii includes a USB 1.1 host controller that can be
+	  accessed through the API provided by the starlet subsystem.
+
+	  Enable this option if you plan to use the internal Nintendo Wii
+	  bluetooth dongle or any USB peripheral connected to the external
+	  ports.
+
+	  USB devices using isochronous transfers are not supported.
+	  Use of USB hubs is partially supported.
+
+	  Use completely at you own risk. If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called rvl-sthcd.
 
 config USB_WHCI_HCD
 	tristate "Wireless USB Host Controller Interface (WHCI) driver (EXPERIMENTAL)"
