@@ -107,7 +107,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 
 	seq_printf(m, "\nbogomips\t: %lu.%02lu\n",
 		   c->loops_per_jiffy/(500000/HZ),
-		   (c->loops_per_jiffy/(5000/HZ)) % 100);
+		   (c->loops_per_jiffy * 10 /(50000/HZ)) % 100);
 
 #ifdef CONFIG_X86_64
 	if (c->x86_tlbsize > 0)
