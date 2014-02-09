@@ -1275,15 +1275,6 @@ static int ep_insert(struct eventpoll *ep, struct epoll_event *event,
 	 */
 	revents = ep_item_poll(epi, &epq.pt);
 
-	/*
-	 * We have to check if something went wrong during the poll wait queue
-	 * install process. Namely an allocation for a wait queue failed due
-	 * high memory pressure.
-	 */
-	error = -ENOMEM;
-	if (epi->nwait < 0)
-		goto error_unregister;
-
 	/* Add the current item to the list of active epoll hook for this file */
 	spin_lock(&tfile->f_lock);
 	list_add_tail(&epi->fllink, &tfile->f_ep_links);
@@ -1333,7 +1324,6 @@ error_remove_epi:
 
 	rb_erase(&epi->rbn, &ep->rbr);
 
-error_unregister:
 	ep_unregister_pollwait(ep, epi);
 
 	/*
