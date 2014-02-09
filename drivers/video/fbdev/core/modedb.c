@@ -34,6 +34,21 @@
  */
 
 static const struct fb_videomode modedb[] = {
+#ifdef CONFIG_FB_MODEDB
+#ifdef CONFIG_GAMECUBE_COMMON
+	{
+		/* 640x480 @ 60 Hz, 31.5 kHz hsync */
+		NULL, 60, 640, 480, 39721, 40, 24, 32, 11, 96, 2, 0,
+		FB_VMODE_NONINTERLACED
+	},
+#else
+    /*
+     * If CONFIG_FB_MODEDB=y, the board should fill their preferrable modedb
+     * here.
+     */
+#error FB_MODEDB=y but no modedb configured.
+#endif
+#else /* !CONFIG_FB_MODEDB */
 
 	/* 640x400 @ 70 Hz, 31.5 kHz hsync */
 	{ NULL, 70, 640, 400, 39721, 40, 24, 39, 9, 96, 2, 0,
@@ -286,6 +301,7 @@ static const struct fb_videomode modedb[] = {
 	/* 864x480 @ 60 Hz, 35.15 kHz hsync */
 	{ NULL, 60, 864, 480, 27777, 1, 1, 1, 1, 0, 0,
 		0, FB_VMODE_NONINTERLACED },
+#endif /* CONFIG_FB_MODEDB */
 };
 
 #ifdef CONFIG_FB_MODE_HELPERS
