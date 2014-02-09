@@ -10,6 +10,7 @@
 #include <linux/i2c.h>
 #include <linux/i2c-algo-bit.h>
 #include <linux/i2c-gpio.h>
+#include "i2c-gpio-common.h"
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/slab.h>
