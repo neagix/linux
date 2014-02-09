@@ -1818,6 +1818,25 @@ int gpio_set_debounce(unsigned gpio, unsigned debounce)
 }
 EXPORT_SYMBOL_GPL(gpio_set_debounce);
 
+/**
+ * gpio_direction_is_output - tell if a gpio is configured as an output
+ * @gpio: gpio in question
+ *
+ * Returns a negative errno if the given gpio is not valid.
+ * Returns a positive non-zero if the gpio is configured as an output.
+ * Returns zero otherwise.
+ */
+int gpio_direction_is_output(unsigned gpio)
+{
+	struct gpio_desc *desc = &gpio_desc[gpio];
+
+	if (!gpio_is_valid(gpio))
+		return -EINVAL;
+
+	return test_bit(FLAG_IS_OUT, &desc->flags);
+}
+EXPORT_SYMBOL_GPL(gpio_direction_is_output);
+
 /* I/O calls are only valid after configuration completed; the relevant
  * "is this a valid GPIO" error checks should already have been done.
  *
