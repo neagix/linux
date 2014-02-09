@@ -1458,6 +1458,16 @@ config BLKDEV_MAJOR_HASH_SIZE
 
 	  For a normal desktop machine, 128 may be a preferred value.
 
+config CHRDEV_MAJOR_HASH_SIZE
+	int "Config major hash size of chrdev" if EXPERT
+	range 1 255
+	default 128 if EMBEDDED
+	default 255
+	help
+	  This allows configuring the chrdevs[] array size (255 for default).
+
+	  For a normal desktop machine, 128 may be a preferred value.
+
 config MAX_NR_CON_DRIVER
 	int "Number of console drivers" if EXPERT
 	range 1 16 if EMBEDDED
