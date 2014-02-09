@@ -1804,9 +1804,6 @@ static int __init di_of_probe(struct platform_device *odev)
 	struct resource res;
 	int error = -ENODEV;
 
-	if (starlet_get_ipc_flavour() != STARLET_IPC_MINI)
-		goto out;
-
 	error = of_address_to_resource(odev->dev.of_node, 0, &res);
 	if (error) {
 		pr_err("no io memory range found\n");
