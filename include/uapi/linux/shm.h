@@ -16,10 +16,11 @@
  * advised to make SHMMAX and SHMALL any larger. These limits are
  * suitable for both 32 and 64-bit systems.
  */
+
 #define SHMMIN 1			 /* min shared seg size (bytes) */
 #define SHMMNI 4096			 /* max num of segs system wide */
-#define SHMMAX (ULONG_MAX - (1UL << 24)) /* max shared seg size (bytes) */
-#define SHMALL (ULONG_MAX - (1UL << 24)) /* max shm system wide (pages) */
+#define SHMMAX 268435456		 /* max shared seg size (bytes) */
+#define SHMALL SHMMAX                    /* max shm system wide (pages) */
 #define SHMSEG SHMMNI			 /* max shared segs per process */
 
 /* Obsolete, used only for backwards compatibility and libc5 compiles */
