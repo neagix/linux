@@ -6,6 +6,7 @@
  * Copyright (C) 2004,2005 Rob Reylink
  * Copyright (C) 2005 Todd Jeffreys
  * Copyright (C) 2005,2006,2007,2008,2009 Albert Herranz
+ * Copyleft  (C) 2012, Gerrit Pannek
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -73,12 +74,13 @@
 #include <linux/exi.h>
 
 #define DRV_MODULE_NAME "gcn-sd"
-#define DRV_DESCRIPTION "MMC/SD card block driver for the Nintendo GameCube/Wii"
+#define DRV_DESCRIPTION "MMC/SD/SDHC card block driver for the Nintendo GameCube/Wii"
 #define DRV_AUTHOR	"Rob Reylink, " \
 			"Todd Jeffreys, " \
-			"Albert Herranz"
+			"Albert Herranz" \
+			"Gerrit Pannek"
 
-static char sd_driver_version[] = "4.1i";
+static char sd_driver_version[] = "4.2";
 
 #define sd_printk(level, format, arg...) \
 	printk(level DRV_MODULE_NAME ": " format , ## arg)
@@ -161,8 +163,9 @@ static const unsigned int tacc_mant[] = {
 	35, 40, 45, 50, 55, 60, 70, 80,
 };
 
+unsigned short is_sdhc = 0;
+
 /*
- *
  * Driver settings.
  */
 #define MMC_SHIFT		3	/* 8 partitions */
@@ -235,6 +238,21 @@ struct sd_host {
 };
 
 static void sd_kill(struct sd_host *host);
+
+
+/*
+* This takes care of setting the global variable to check if it's
+* a SDHC-Card or not
+*/
+static void sd_card_set_type(short value) 
+{
+	is_sdhc = value;
+}
+
+static int sd_card_is_sdhc(void) 
+{
+	return is_sdhc;
+} 
 
 
 static void sd_card_set_bad(struct sd_host *host)
@@ -369,40 +387,66 @@ static void mmc_decode_csd(struct mmc_card *card)
 	 * v2 has extra information in bits 15, 11 and 10.
 	 */
 	csd_struct = UNSTUFF_BITS(resp, 126, 2);
-	if (csd_struct != 0 && csd_struct != 1 && csd_struct != 2) {
-		sd_printk(KERN_ERR, "unrecognised CSD structure"
-			  " version %d\n", csd_struct);
+
+	switch (csd_struct) {
+	case 0:
+		m = UNSTUFF_BITS(resp, 115, 4);
+		e = UNSTUFF_BITS(resp, 112, 3);
+		csd->tacc_ns	 = (tacc_exp[e] * tacc_mant[m] + 9) / 10;
+		csd->tacc_clks	 = UNSTUFF_BITS(resp, 104, 8) * 100;
+
+		m = UNSTUFF_BITS(resp, 99, 4);
+		e = UNSTUFF_BITS(resp, 96, 3);
+		csd->max_dtr	  = tran_exp[e] * tran_mant[m];
+		csd->cmdclass	  = UNSTUFF_BITS(resp, 84, 12);
+
+		e = UNSTUFF_BITS(resp, 47, 3);
+		m = UNSTUFF_BITS(resp, 62, 12);
+		csd->capacity	  = (1 + m) << (e + 2);
+
+		csd->read_blkbits = UNSTUFF_BITS(resp, 80, 4);
+		csd->read_partial = UNSTUFF_BITS(resp, 79, 1);
+		csd->write_misalign = UNSTUFF_BITS(resp, 78, 1);
+		csd->read_misalign = UNSTUFF_BITS(resp, 77, 1);
+		csd->r2w_factor = UNSTUFF_BITS(resp, 26, 3);
+		csd->write_blkbits = UNSTUFF_BITS(resp, 22, 4);
+		csd->write_partial = UNSTUFF_BITS(resp, 21, 1);
+		break;
+	case 1:
+		/*
+		 * This is a block-addressed SDHC card. Most
+		 * interesting fields are unused and have fixed
+		 * values. To avoid getting tripped by buggy cards,
+		 * we assume those fixed values ourselves.
+		 */
+		mmc_card_set_blockaddr(card);
+
+		csd->tacc_ns	 = 0; /* Unused */
+		csd->tacc_clks	 = 0; /* Unused */
+
+		m = UNSTUFF_BITS(resp, 99, 4);
+		e = UNSTUFF_BITS(resp, 96, 3);
+		csd->max_dtr	  = tran_exp[e] * tran_mant[m];
+		csd->cmdclass	  = UNSTUFF_BITS(resp, 84, 12);
+
+		m = UNSTUFF_BITS(resp, 48, 22);
+		csd->capacity     = (1 + m) << 10;
+
+		csd->read_blkbits = 9;
+		csd->read_partial = 0;
+		csd->write_misalign = 0;
+		csd->read_misalign = 0;
+		csd->r2w_factor = 4; /* Unused */
+		csd->write_blkbits = 9;
+		csd->write_partial = 0;
+
+		sd_card_set_type(1);
+		break;
+	default:
+		printk("%s: unrecognised CSD structure version %d\n",
+			mmc_hostname(card->host), csd_struct);
 		return;
 	}
-
-	csd->mmca_vsn = UNSTUFF_BITS(resp, 122, 4);
-
-	/* TAAC */
-	m = UNSTUFF_BITS(resp, 115, 4);
-	e = UNSTUFF_BITS(resp, 112, 3);
-	csd->tacc_ns = (tacc_exp[e] * tacc_mant[m] + 9) / 10;
-
-	/* NSAC */
-	csd->tacc_clks = UNSTUFF_BITS(resp, 104, 8) * 100;
-
-	/* TRAN_SPEED */
-	m = UNSTUFF_BITS(resp, 99, 4);
-	e = UNSTUFF_BITS(resp, 96, 3);
-	csd->max_dtr = tran_exp[e] * tran_mant[m];
-
-	/* CCC */
-	csd->cmdclass = UNSTUFF_BITS(resp, 84, 12);
-
-	/* READ_BL_LEN */
-	csd->read_blkbits = UNSTUFF_BITS(resp, 80, 4);
-
-	/* C_SIZE */
-	m = UNSTUFF_BITS(resp, 62, 12);
-
-	/* C_SIZE_MULT */
-	e = UNSTUFF_BITS(resp, 47, 3);
-
-	csd->capacity = (1 + m) << (e + 2);	/* in card blocks */
 }
 
 #if 0
@@ -639,6 +683,13 @@ static inline void sd_cmd(struct sd_command *cmd, u8 opcode, u32 arg)
 	cmd->crc = 0x01;	/* FIXME, crc is not currently used */
 }
 
+static inline void sd_cmd_crc(struct sd_command *cmd, u8 opcode, u32 arg, u8 crc)
+{
+	cmd->cmd = 0x40 + opcode;
+	cmd->arg = arg;
+	cmd->crc = crc;	
+}
+
 /* */
 static inline void sd_cmd_go_idle_state(struct sd_command *cmd)
 {
@@ -735,13 +786,12 @@ static int sd_generic_read(struct sd_host *host,
 	/* wait for read token, then read data */
 	retval = sd_read_data(host, data, len, token);
 	if (retval < 0)
-		goto out;
+		goto out;	
 
 	/* read trailing crc */
 	spi_read(host, &crc, sizeof(crc));
 
 	retval = 0;
-
 	/* FIXME, rewrite this a bit */
 	{
 		calc_crc = 0;
@@ -760,7 +810,7 @@ out:
 	sd_end_command(host);
 
 	if (retval < 0) {
-		DBG("read, offset=%d, len=%d\n", arg, len);
+		DBG("read, offset=%u, len=%d\n", arg, len);
 		DBG("crc=%04x, calc_crc=%04x, %s\n", crc, calc_crc,
 		    (retval < 0) ? "failed" : "ok");
 	}
@@ -912,8 +962,11 @@ static int sd_reset_sequence(struct sd_host *host)
 	u8 d;
 	int i;
 	int retval = 0;
+	u32 cmd_ret = 0;
 
 	host->card.state = 0;
+	
+
 
 	/*
 	 * Wait at least 80 dummy clock cycles with the card deselected
@@ -940,8 +993,9 @@ static int sd_reset_sequence(struct sd_host *host)
 			retval = -ENODEV;
 			goto out;
 		}
-		if (retval == R1_SPI_IDLE)
+		if (retval == R1_SPI_IDLE) {
 			break;
+		}
 	}
 	if (retval != R1_SPI_IDLE) {
 		retval = -ENODEV;
@@ -949,11 +1003,41 @@ static int sd_reset_sequence(struct sd_host *host)
 	}
 
 	/*
+	* Send CMD8 and CMD58 for SDHC support
+	*/
+	for (i = 0; i < 8; i++) {
+		sd_cmd_crc(cmd, SD_SEND_IF_COND, 0x01AA, 0x87); //CMD8 + Check and CRC
+		retval = sd_start_command(host, cmd); 
+		if(retval==0x01) { 	
+			memset(&cmd_ret, 0, sizeof(cmd_ret));
+			spi_read(host, &cmd_ret, sizeof(cmd_ret));
+			sd_end_command(host); 	
+			if (cmd_ret == 0x01AA) { //Check if CMD8 is alright
+				sd_cmd(cmd, MMC_SPI_READ_OCR, 0);//CMD58
+				retval = sd_start_command(host, cmd);	
+
+				memset(&cmd_ret, 0, sizeof(cmd_ret));
+				spi_read(host, &cmd_ret, sizeof(cmd_ret));
+				sd_end_command(host);		
+
+				if(retval==0x01) { //Everything is alright
+					break;
+				} 
+			} 
+			break;
+		} 		
+		else if(retval==0x05) { 
+			//NO SDHC-Card
+			break;
+		} 
+	}	
+	
+	/*
 	 * Send a ACMD41 to activate card initialization process.
 	 * SD card must ack with "ok" (0x00).
 	 * MMC card will report "invalid command" (0x04).
 	 */
-	for (i = 0; i < 0xffff; i++) {
+	for (i = 0; i < 65535; i++) {
 		/* ACMD41 = CMD55 + CMD41 */
 		sd_cmd(cmd, MMC_APP_CMD, 0);
 		retval = sd_run_no_data_command(host, cmd);
@@ -962,30 +1046,33 @@ static int sd_reset_sequence(struct sd_host *host)
 			goto out;
 		}
 
-		sd_cmd(cmd, SD_APP_OP_COND, 0);
+		sd_cmd(cmd, SD_APP_OP_COND, (1<<30)|0x100000);
 		retval = sd_run_no_data_command(host, cmd);
 		if (retval < 0) {
 			retval = -ENODEV;
 			goto out;
 		}
+
 		if (retval == 0x00) {
 			/* we found a SD card */
 			mmc_card_set_present(&host->card);
 			host->card.type = MMC_TYPE_SD;
 			break;
+		} else if(retval != 0x01) {
+			DBG("ACMD41 return: %d\n", retval);
 		}
+
 		if ((retval & R1_SPI_ILLEGAL_COMMAND)) {
 			/* this looks like a MMC card */
 			break;
 		}
 	}
-
 	/*
 	 * MMC cards require CMD1 to activate card initialization process.
 	 * MMC card must ack with "ok" (0x00)
 	 */
 	if (!mmc_card_sd(&host->card)) {
-		for (i = 0; i < 0xffff; i++) {
+		for (i = 0; i < 65535; i++) {
 			sd_cmd(cmd, MMC_SEND_OP_COND, 0);
 			retval = sd_run_no_data_command(host, cmd);
 			if (retval < 0) {
@@ -1049,12 +1136,11 @@ static int sd_welcome_card(struct sd_host *host)
 		goto err_bad_card;
 	mmc_decode_cid(&host->card);
 
-	sd_printk(KERN_INFO, "slot%d: descr \"%s\", size %luk, block %ub,"
+	sd_printk(KERN_INFO, "slot%d: descr \"%s\", size %lublk, block %ub,"
 		  " serial %08x\n",
 		  to_channel(exi_get_exi_channel(host->exi_device)),
 		  host->card.cid.prod_name,
-		  (unsigned long)((host->card.csd.capacity *
-			  (1 << host->card.csd.read_blkbits)) / 1024),
+		  (unsigned long)((host->card.csd.capacity)),
 		  1 << host->card.csd.read_blkbits,
 		  host->card.cid.serial);
 
@@ -1068,12 +1154,11 @@ out:
 }
 
 /*
- *
  * Block layer.
  */
 
 /*
- * Performs a read request.
+ * Performs a read request for SD.
  */
 static int sd_read_request(struct sd_host *host, struct request *req)
 {
@@ -1091,14 +1176,9 @@ static int sd_read_request(struct sd_host *host, struct request *req)
 	 */
 
 	start = blk_rq_pos(req) << KERNEL_SECTOR_SHIFT;
-#if 0
-	nr_blocks = req->current_nr_sectors >>
-			 (host->card.csd.read_blkbits - KERNEL_SECTOR_SHIFT);
-	block_len = 1 << host->card.csd.read_blkbits;
-#else
+
 	nr_blocks = blk_rq_cur_sectors(req);
 	block_len = 1 << KERNEL_SECTOR_SHIFT;
-#endif
 
 	for (i = 0; i < nr_blocks; i++) {
 		retval = sd_read_single_block(host, start, buf, block_len);
@@ -1120,7 +1200,39 @@ static int sd_read_request(struct sd_host *host, struct request *req)
 }
 
 /*
- * Performs a write request.
+ * Performs a read request for SDHC.
+ */
+static int sdhc_read_request(struct sd_host *host, struct request *req)
+{
+	int i;
+	unsigned long nr_blocks; /* in card blocks */
+	size_t block_len; /* in bytes */
+	unsigned long start;
+	void *buf = req->buffer;
+	int retval;
+
+	start = blk_rq_pos(req);
+
+	nr_blocks = blk_rq_cur_sectors(req);
+	block_len = 1 << KERNEL_SECTOR_SHIFT;
+
+	for (i = 0; i < nr_blocks; i++) {
+		retval = sd_read_single_block(host, start, buf, block_len);
+		if (retval < 0)
+			break;
+
+		start ++;
+		buf += block_len;
+	}
+
+	/* number of kernel sectors transferred */
+	retval = i;
+
+	return retval;
+}
+
+/*
+ * Performs a write request for SD.
  */
 static int sd_write_request(struct sd_host *host, struct request *req)
 {
@@ -1154,6 +1266,40 @@ static int sd_write_request(struct sd_host *host, struct request *req)
 }
 
 /*
+ * Performs a write request for SDHC.
+ */
+static int sdhc_write_request(struct sd_host *host, struct request *req)
+{
+	int i;
+	unsigned long nr_blocks; /* in card blocks */
+	size_t block_len; /* in bytes */
+	unsigned long start;
+	void *buf = req->buffer;
+	int retval;
+
+	/* FIXME?, maybe should use 2^WRITE_BL_LEN blocks */
+
+	/* kernel sectors and card write blocks are both 512 bytes long */
+	start = blk_rq_pos(req);
+	nr_blocks = blk_rq_cur_sectors(req);
+	block_len = 1 << KERNEL_SECTOR_SHIFT;
+
+	for (i = 0; i < nr_blocks; i++) {
+		retval = sd_write_single_block(host, start, buf, block_len);
+		if (retval < 0)
+			break;
+
+		start ++;
+		buf += block_len;
+	}
+
+	/* number of kernel sectors transferred */
+	retval = i;
+
+	return retval;
+}
+
+/*
  * Verifies if a request should be dispatched or not.
  *
  * Returns:
@@ -1174,14 +1320,14 @@ static int sd_check_request(struct sd_host *host, struct request *req)
 
 	/* unit is kernel sectors */
 	nr_sectors =
-	    host->card.csd.capacity << (host->card.csd.read_blkbits -
-					KERNEL_SECTOR_SHIFT);
+	    host->card.csd.capacity << (host->card.csd.read_blkbits - KERNEL_SECTOR_SHIFT);
 
 	/* keep our reads within limits */
-	if (blk_rq_pos(req) + blk_rq_cur_sectors(req) > nr_sectors) {
+
+	if ((blk_rq_pos(req) + blk_rq_cur_sectors(req)) > nr_sectors) {
 		sd_printk(KERN_ERR, "reading past end, aborting\n");
 		return -EINVAL;
-	}
+	} 
 
 	return 0;
 }
@@ -1200,12 +1346,20 @@ static int sd_do_request(struct sd_host *host, struct request *req)
 		goto out;
 	}
 
+	
+	//I added the 2 different read/write functions, so we just need one if-else and should perform much better ^^
 	switch (rq_data_dir(req)) {
 	case WRITE:
-		nr_sectors = sd_write_request(host, req);
+		if(sd_card_is_sdhc()==0) 		
+			nr_sectors = sd_write_request(host, req);
+		else
+			nr_sectors = sdhc_write_request(host, req);
 		break;
 	case READ:
-		nr_sectors = sd_read_request(host, req);
+		if(sd_card_is_sdhc()==0) 		
+			nr_sectors = sd_read_request(host, req);
+		else
+			nr_sectors = sdhc_read_request(host, req);	
 		break;
 	}
 
@@ -1405,8 +1559,7 @@ static int sd_revalidate_disk(struct gendisk *disk)
 
 	/* inform the block layer about various sizes */
 	blk_queue_logical_block_size(host->queue, 1 << KERNEL_SECTOR_SHIFT);
-	set_capacity(host->disk, host->card.csd.capacity <<
-			 (host->card.csd.read_blkbits - KERNEL_SECTOR_SHIFT));
+	set_capacity(host->disk, host->card.csd.capacity /*<< (host->card.csd.read_blkbits - KERNEL_SECTOR_SHIFT)*/);
 
 	clear_bit(__SD_MEDIA_CHANGED, &host->flags);
 

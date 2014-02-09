@@ -64,10 +64,10 @@ config AMIGA_Z2RAM
 	  module will be called z2ram.
 
 config GAMECUBE_SD
-	tristate "Nintendo GameCube/Wii MMC/SD card"
+	tristate "Nintendo GameCube/Wii MMC/SD/SDHC card"
 	depends on GAMECUBE_EXI
 	help
-	  This enables support for using SD and MMC cards through
+	  This enables support for using SD, MMC and SDHC cards through
 	  the Nintendo SD Card Adapter (DOL-019) or compatible hardware.
 
 	  You probably want to compile FAT support, and the required
