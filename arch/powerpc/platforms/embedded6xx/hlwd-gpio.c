@@ -97,10 +97,9 @@ static int hlwd_gpio_dir_out(struct gpio_chip *gc, unsigned int gpio, int val)
 	return 0;
 }
 
-int hlwd_gpio_add32(struct device_node *np)
+int hlwd_gpio_add32(struct device_node *gpio_np)
 {
 	struct of_mm_gpio_chip *mm_gc;
-	//struct of_gpio_chip *of_gc;
 	struct gpio_chip *gc;
 	struct hlwd_gpio_chip *st_gc;
 	const unsigned long *prop;
@@ -112,11 +111,9 @@ int hlwd_gpio_add32(struct device_node *np)
 
 	spin_lock_init(&st_gc->lock);
 	mm_gc = &st_gc->mmchip;
-	//of_gc = &mm_gc->of_gc;
-	//gc = &of_gc->gc;
 	gc = &mm_gc->gc;
 
-	prop = of_get_property(np, "#gpio-cells", NULL);
+	prop = of_get_property(gpio_np, "#gpio-cells", NULL);
 	if (prop && *prop >= 2)
 		gc->of_gpio_n_cells = *prop;
 	else
@@ -128,23 +125,23 @@ int hlwd_gpio_add32(struct device_node *np)
 	gc->get = hlwd_gpio_get;
 	gc->set = hlwd_gpio_set;
 
-	error = of_mm_gpiochip_add(np, mm_gc);
+	error = of_mm_gpiochip_add(gpio_np, mm_gc);
 	if (!error)
 		drv_printk(KERN_INFO, "%s: added %u gpios at %p\n",
-			   np->name, gc->ngpio, mm_gc->regs);
+			   gpio_np->name, gc->ngpio, mm_gc->regs);
 	return error;
 }
 
 static int hlwd_gpio_init(void)
 {
-	struct device_node *np;
+	struct device_node *gpio_np;
 	int error;
 
-	for_each_compatible_node(np, NULL, "nintendo,hollywood-gpio") {
-		error = hlwd_gpio_add32(np);
+	for_each_compatible_node(gpio_np, NULL, "nintendo,hollywood-gpio") {
+		error = hlwd_gpio_add32(gpio_np);
 		if (error < 0)
 			drv_printk(KERN_ERR, "error %d adding gpios"
-				   " for %s\n", error, np->full_name);
+				   " for %s\n", error, gpio_np->full_name);
 	}
 	return 0; /* whatever */
 }

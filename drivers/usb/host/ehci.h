@@ -663,6 +663,11 @@ ehci_port_speed(struct ehci_hcd *ehci, unsigned int portsc)
 
 #include <asm/starlet-mini.h>
 
+/*
+ * The Nintendo Wii video game console has no PCI hardware.
+ * The USB controllers are part of the "Hollywood" chipset and are
+ * accessed via the platform internal I/O accessors.
+ */
 static inline unsigned int ehci_readl(const struct ehci_hcd *ehci,
 				      __u32 __iomem *regs)
 {
