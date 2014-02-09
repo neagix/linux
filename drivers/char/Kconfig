@@ -580,7 +580,7 @@ config TELCLOCK
 	  controlling the behavior of this hardware.
 
 config DEVPORT
-	bool
+	bool "/dev/port virtual device support" if EMBEDDED
 	depends on !M68K
 	depends on ISA || PCI
 	default y
