@@ -25,6 +25,7 @@ obj-$(CONFIG_IIO)		+= iio/
 obj-$(CONFIG_FB_SM7XX)		+= sm7xxfb/
 obj-$(CONFIG_FB_XGI)		+= xgifb/
 obj-$(CONFIG_USB_EMXX)		+= emxx_udc/
+obj-$(CONFIG_VHBA)		+= vhba/
 obj-$(CONFIG_FT1000)		+= ft1000/
 obj-$(CONFIG_SPEAKUP)		+= speakup/
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4)	+= ste_rmi4/
