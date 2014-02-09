@@ -276,6 +276,22 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 		if (brq.data.blocks > card->host->max_blk_count)
 			brq.data.blocks = card->host->max_blk_count;
 
+		if (mmc_host_is_spi(card->host)) {
+			/*
+			 * Some SD-cards fail when we are reading last block
+			 * with multiblock read. In these cases we automatically
+			 * use single block reads. This only happens on SPI
+			 * hosts.
+			 */
+			if (rq_data_dir(req) == READ && brq.data.blocks > 1) {
+				sector_t s = blk_rq_pos(req) + brq.data.blocks;
+
+				if (s >= get_capacity(md->disk)) {
+					disable_multi = 1;
+				}
+			}
+		}
+
 		/*
 		 * After a read error, we redo the request one sector at a time
 		 * in order to accurately determine which sectors can be read
