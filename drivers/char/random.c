@@ -849,9 +849,13 @@ void add_interrupt_randomness(int irq, int irq_flags)
 	j_high = (sizeof(now) > 4) ? now >> 32 : 0;
 	input[0] = cycles ^ j_high ^ irq;
 	input[1] = now ^ c_high;
-	ip = regs ? instruction_pointer(regs) : _RET_IP_;
-	input[2] = ip;
-	input[3] = ip >> 32;
+	if (regs) {
+		ip = instruction_pointer(regs);
+		input[2] = ip;
+		input[3] = ip >> 32;
+	} else {
+		input[2] = input[3] = 0;
+	}
 
 	fast_mix(fast_pool, input);
 
