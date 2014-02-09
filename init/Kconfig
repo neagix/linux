@@ -1260,6 +1260,9 @@ config CC_OPTIMIZE_FOR_SIZE
 
 	  If unsure, say N.
 
+config CHECK_WARNING_STRICTLY
+        bool "Verify Warning strictly during Compile"
+
 config SYSCTL
 	bool
 
