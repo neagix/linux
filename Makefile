@@ -644,6 +644,15 @@ ifeq ($(shell $(CONFIG_SHELL) $(srctree)/scripts/gcc-goto.sh $(CC) $(KBUILD_CFLA
 	KBUILD_AFLAGS += -DCC_HAVE_ASM_GOTO
 endif
 
+ifdef CONFIG_CC_CHECK_WARNING_STRICTLY
+KBUILD_CFLAGS += -fdiagnostics-show-option -Werror \
+                 -Wno-error=unused-function \
+                 -Wno-error=unused-variable \
+                 -Wno-error=unused-value \
+                 -Wno-error=unused-label \
+                 -Wno-address
+endif
+
 ifdef CONFIG_READABLE_ASM
 # Disable optimizations that make assembler listings hard to read.
 # reorder blocks reorders the control in the function
