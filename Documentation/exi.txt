@@ -1,0 +1,81 @@
+The Expansion Interface (EXI)
+-----------------------------
+
+[Introductory information goes here...]
+
+
+Device drivers
+--------------
+
+Outlined below is the recommended practice when writing EXI device drivers.
+
+The bus driver already handles quite an amount of stuff, although some of
+it might have to be implemented by individual device drivers. If in doubt,
+see include/linux/exi.h.
+
+
+Registration
+------------
+
+Declare a struct exi_driver. Initialize at least the name, id_table,
+probe and remove fields:
+
+
+	static struct exi_device_id frob_id_tbl[] = {
+		{ .dev_id = EXI_ID_FROB0, },
+		{ .dev_id = EXI_ID_FROB1, },
+		{ .dev_id = EXI_ID_FROB2, },
+	};
+
+	static struct exi_driver frob_driver = {
+		.name		= "frob",
+		.id_table	= frob_id_tbl,
+		.probe		= frob_probe,
+		.remove		= frob_remove,
+	};
+
+
+`name' distinguishes the driver from others registered with the bus.
+It should be short, unique, yet remain informative.
+
+`id_table' is a pointer to a table of device IDs the driver claims to
+support. These should be taken directly from include/linux/exi_ids.h.
+
+
+`probe' is a pointer to a function that's called once the driver is bound
+to a device it claims to support.
+
+`remove' is a pointer to a function that's called when either the driver
+unregisters with the bus, or a device bound to that specific driver is
+physically unplugged from the bus.
+
+
+From within the driver's initialization function, register the driver with
+the bus by calling exi_driver_register() with the driver structure declared
+previously:
+
+	static int __init frob_init(void)
+	{
+		return exi_driver_register(&frob_driver);
+	}
+
+
+Deregistration
+--------------
+
+If the driver may be compiled as a loadable kernel module, then all you
+have to do is call exi_driver_unregister() in the driver's exit function:
+
+	static void __exit frob_exit(void)
+	{
+		exi_driver_unregister(&frob_driver);
+	}
+
+Device Private Data
+-------------------
+
+The functions exi_set_drvdata()/exi_get_drvdata() are available for the
+sole purpose of setting and getting driver private data for an EXI device.
+These are simply helpers around the driver-model functions that do the
+actual work. Use them. That way, you don't have to worry (or worry less)
+about changes to the driver-model API.
