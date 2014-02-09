@@ -157,6 +157,7 @@ static int cpu_clock_sample(const clockid_t which_clock,
 {
 	switch (CPUCLOCK_WHICH(which_clock)) {
 	default:
+		*sample = 0;
 		return -EINVAL;
 	case CPUCLOCK_PROF:
 		*sample = prof_ticks(p);
@@ -242,6 +243,7 @@ static int cpu_clock_sample_group(const clockid_t which_clock,
 
 	switch (CPUCLOCK_WHICH(which_clock)) {
 	default:
+		*sample = 0;
 		return -EINVAL;
 	case CPUCLOCK_PROF:
 		thread_group_cputime(p, &cputime);
