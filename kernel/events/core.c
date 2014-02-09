@@ -4732,7 +4732,7 @@ perf_event_read_event(struct perf_event *event,
 	};
 	int ret;
 
-	perf_event_header__init_id(&read_event.header, &sample, event);
+	__perf_event_header__init_id(&read_event.header, &sample, event);
 	ret = perf_output_begin(&handle, event, read_event.header.size);
 	if (ret)
 		return;
@@ -4837,7 +4837,7 @@ static void perf_event_task_output(struct perf_event *event,
 	if (!perf_event_task_match(event))
 		return;
 
-	perf_event_header__init_id(&task_event->event_id.header, &sample, event);
+	__perf_event_header__init_id(&task_event->event_id.header, &sample, event);
 
 	ret = perf_output_begin(&handle, event,
 				task_event->event_id.header.size);
@@ -4931,7 +4931,7 @@ static void perf_event_comm_output(struct perf_event *event,
 	if (!perf_event_comm_match(event))
 		return;
 
-	perf_event_header__init_id(&comm_event->event_id.header, &sample, event);
+	__perf_event_header__init_id(&comm_event->event_id.header, &sample, event);
 	ret = perf_output_begin(&handle, event,
 				comm_event->event_id.header.size);
 
@@ -5063,7 +5063,7 @@ static void perf_event_mmap_output(struct perf_event *event,
 		mmap_event->event_id.header.size += sizeof(mmap_event->ino_generation);
 	}
 
-	perf_event_header__init_id(&mmap_event->event_id.header, &sample, event);
+	__perf_event_header__init_id(&mmap_event->event_id.header, &sample, event);
 	ret = perf_output_begin(&handle, event,
 				mmap_event->event_id.header.size);
 	if (ret)
@@ -5237,7 +5237,7 @@ static void perf_log_throttle(struct perf_event *event, int enable)
 	if (enable)
 		throttle_event.header.type = PERF_RECORD_UNTHROTTLE;
 
-	perf_event_header__init_id(&throttle_event.header, &sample, event);
+	__perf_event_header__init_id(&throttle_event.header, &sample, event);
 
 	ret = perf_output_begin(&handle, event,
 				throttle_event.header.size);
