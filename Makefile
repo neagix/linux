@@ -344,8 +344,8 @@ CHECK		= sparse
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
 ifdef CONFIG_GAMECUBE_COMMON
-MODFLAGS	= -Os -fsched-spec-load -fforce-addr -fsingle-precision-constant \
-			-fivopts -fbranch-target-load-optimize -pipe -mtune=750 -mcpu=750
+MODFLAGS	= -fsched-spec-load -fforce-addr -fsingle-precision-constant \
+		-fivopts -fbranch-target-load-optimize -pipe -mtune=750 -mcpu=750
 else
 MODFLAGS	= -fsched-spec-load -fivopts -fbranch-target-load-optimize -pipe
 endif
