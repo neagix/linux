@@ -109,7 +109,7 @@ static struct console *exclusive_console;
  *	Array of consoles built from command line options (console=)
  */
 
-#define MAX_CMDLINECONSOLES 8
+#define MAX_CMDLINECONSOLES CONFIG_MAX_CMDLINECONSOLES
 
 static struct console_cmdline console_cmdline[MAX_CMDLINECONSOLES];
 
