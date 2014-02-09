@@ -388,7 +388,7 @@ define_machine(wii) {
 	.calibrate_decr		= generic_calibrate_decr,
 	.progress		= udbg_progress,
 	.machine_shutdown	= wii_shutdown,
-#ifdef CONFIG_KEXEC
+#ifdef CONFIG_KEXEC	/* REMOVE THIS (as of 2.6.39)? */
 	.machine_kexec_prepare	= wii_machine_kexec_prepare,
 	.machine_kexec		= wii_machine_kexec,
 #endif
@@ -413,7 +413,7 @@ static int __init wii_device_probe(void)
 		return 0;
 
 	of_platform_bus_probe(NULL, wii_of_bus, NULL);
-	
+
 	np = of_find_compatible_node(NULL, NULL, "nintendo,hollywood-mem2");
 	if (np) {
 		of_platform_device_create(np, NULL, NULL);
