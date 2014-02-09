@@ -489,6 +489,9 @@ struct fb_info {
 #define FBINFO_STATE_SUSPENDED	1
 	u32 state;			/* Hardware state i.e suspend */
 	void *fbcon_par;                /* fbcon use-only private area */
+
+	struct fb_image bgdecor;
+
 	/* From here on everything is device dependent */
 	void *par;
 	/* we need the PCI or similar aperture base/size not
