@@ -298,8 +298,8 @@ static int lockdep_stats_show(struct seq_file *m, void *v)
 #endif
 	seq_printf(m, " in-process chains:             %11u\n",
 			nr_process_chains);
-	seq_printf(m, " stack-trace entries:           %11lu [max: %lu]\n",
-			nr_stack_trace_entries, MAX_STACK_TRACE_ENTRIES);
+	seq_printf(m, " stack-trace entries:           %11lu [max: %d]\n",
+			nr_stack_trace_entries, CONFIG_MAX_STACK_TRACE_ENTRIES);
 	seq_printf(m, " combined max dependencies:     %11u\n",
 			(nr_hardirq_chains + 1) *
 			(nr_softirq_chains + 1) *
