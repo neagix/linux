@@ -66,8 +66,11 @@ int hcd_buffer_create(struct usb_hcd *hcd)
 	int		i, size;
 
 	if (!IS_ENABLED(CONFIG_HAS_DMA) ||
+		(
 	    (!is_device_dma_capable(hcd->self.sysdev) &&
-	     !(hcd->driver->flags & HCD_LOCAL_MEM)))
+	     !(hcd->driver->flags & HCD_LOCAL_MEM)) ||
+	     (hcd->driver->flags & HCD_NO_COHERENT_MEM)
+	     ))
 		return 0;
 
 	for (i = 0; i < HCD_BUFFER_POOLS; i++) {
@@ -130,8 +133,11 @@ void *hcd_buffer_alloc(
 
 	/* some USB hosts just use PIO */
 	if (!IS_ENABLED(CONFIG_HAS_DMA) ||
-	    (!is_device_dma_capable(bus->sysdev) &&
-	     !(hcd->driver->flags & HCD_LOCAL_MEM))) {
+		(
+	    (!is_device_dma_capable(hcd->self.sysdev) &&
+	     !(hcd->driver->flags & HCD_LOCAL_MEM)) ||
+	     (hcd->driver->flags & HCD_NO_COHERENT_MEM)
+	     )) {
 		*dma = ~(dma_addr_t) 0;
 		return kmalloc(size, mem_flags);
 	}
@@ -160,8 +166,11 @@ void hcd_buffer_free(
 		return;
 
 	if (!IS_ENABLED(CONFIG_HAS_DMA) ||
-	    (!is_device_dma_capable(bus->sysdev) &&
-	     !(hcd->driver->flags & HCD_LOCAL_MEM))) {
+		(
+	    (!is_device_dma_capable(hcd->self.sysdev) &&
+	     !(hcd->driver->flags & HCD_LOCAL_MEM)) ||
+	     (hcd->driver->flags & HCD_NO_COHERENT_MEM)
+	     )) {
 		kfree(addr);
 		return;
 	}
