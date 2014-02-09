@@ -82,6 +82,7 @@ GSYMS
 GTAGS
 
 *.orig
+*.rej
 *~
 \#*#
 

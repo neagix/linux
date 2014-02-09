@@ -8,6 +8,25 @@
 
 #define FB_MAX			CONFIG_FB_MAX	/* sufficient for now */
 
+struct fbcon_decor_iowrapper
+{
+	unsigned short vc;		/* Virtual console */
+	unsigned char origin;		/* Point of origin of the request */
+	void *data;
+};
+
+#ifdef __KERNEL__
+#ifdef CONFIG_COMPAT
+#include <linux/compat.h>
+struct fbcon_decor_iowrapper32
+{
+	unsigned short vc;		/* Virtual console */
+	unsigned char origin;		/* Point of origin of the request */
+	compat_uptr_t data;
+};
+#endif /* CONFIG_COMPAT */
+#endif /* __KERNEL__ */
+
 /* ioctls
    0x46 is 'F'								*/
 #define FBIOGET_VSCREENINFO	0x4600
@@ -39,6 +58,24 @@
 #define FBIOFLIP                0x4622
 #define FBIOFLIPHACK            0x4623 /* libsdl */
 #define FBIO_WAITFORVSYNC	_IOW('F', 0x20, __u32)
+#define FBIOCONDECOR_SETCFG	_IOWR('F', 0x19, struct fbcon_decor_iowrapper)
+#define FBIOCONDECOR_GETCFG	_IOR('F', 0x1A, struct fbcon_decor_iowrapper)
+#define FBIOCONDECOR_SETSTATE	_IOWR('F', 0x1B, struct fbcon_decor_iowrapper)
+#define FBIOCONDECOR_GETSTATE	_IOR('F', 0x1C, struct fbcon_decor_iowrapper)
+#define FBIOCONDECOR_SETPIC 	_IOWR('F', 0x1D, struct fbcon_decor_iowrapper)
+#ifdef __KERNEL__
+#ifdef CONFIG_COMPAT
+#define FBIOCONDECOR_SETCFG32	_IOWR('F', 0x19, struct fbcon_decor_iowrapper32)
+#define FBIOCONDECOR_GETCFG32	_IOR('F', 0x1A, struct fbcon_decor_iowrapper32)
+#define FBIOCONDECOR_SETSTATE32	_IOWR('F', 0x1B, struct fbcon_decor_iowrapper32)
+#define FBIOCONDECOR_GETSTATE32	_IOR('F', 0x1C, struct fbcon_decor_iowrapper32)
+#define FBIOCONDECOR_SETPIC32	_IOWR('F', 0x1D, struct fbcon_decor_iowrapper32)
+#endif /* CONFIG_COMPAT */
+#endif /* __KERNEL__ */
+
+#define FBCON_DECOR_THEME_LEN		128	/* Maximum lenght of a theme name */
+#define FBCON_DECOR_IO_ORIG_KERNEL	0	/* Kernel ioctl origin */
+#define FBCON_DECOR_IO_ORIG_USER	1	/* User ioctl origin */
 
 #define FB_TYPE_PACKED_PIXELS		0	/* Packed Pixels	*/
 #define FB_TYPE_PLANES			1	/* Non interleaved planes */
@@ -291,6 +328,28 @@ struct fb_cmap {
 	__u16 *transp;			/* transparency, can be NULL */
 };
 
+#ifdef __KERNEL__
+#ifdef CONFIG_COMPAT
+struct fb_cmap32 {
+	__u32 start;
+	__u32 len;			/* Number of entries */
+	compat_uptr_t red;		/* Red values	*/
+	compat_uptr_t green;
+	compat_uptr_t blue;
+	compat_uptr_t transp;		/* transparency, can be NULL */
+};
+
+#define fb_cmap_from_compat(to, from) \
+	(to).start  = (from).start; \
+	(to).len    = (from).len; \
+	(to).red    = compat_ptr((from).red); \
+	(to).green  = compat_ptr((from).green); \
+	(to).blue   = compat_ptr((from).blue); \
+	(to).transp = compat_ptr((from).transp)
+
+#endif /* CONFIG_COMPAT */
+#endif /* __KERNEL__ */
+
 struct fb_con2fbmap {
 	__u32 console;
 	__u32 framebuffer;
@@ -371,6 +430,34 @@ struct fb_image {
 	const char *data;	/* Pointer to image data */
 	struct fb_cmap cmap;	/* color map info */
 };
+
+#ifdef __KERNEL__
+#ifdef CONFIG_COMPAT
+struct fb_image32 {
+	__u32 dx;			/* Where to place image */
+	__u32 dy;
+	__u32 width;			/* Size of image */
+	__u32 height;
+	__u32 fg_color;			/* Only used when a mono bitmap */
+	__u32 bg_color;
+	__u8  depth;			/* Depth of the image */
+	const compat_uptr_t data;	/* Pointer to image data */
+	struct fb_cmap32 cmap;		/* color map info */
+};
+
+#define fb_image_from_compat(to, from) \
+	(to).dx       = (from).dx; \
+	(to).dy       = (from).dy; \
+	(to).width    = (from).width; \
+	(to).height   = (from).height; \
+	(to).fg_color = (from).fg_color; \
+	(to).bg_color = (from).bg_color; \
+	(to).depth    = (from).depth; \
+	(to).data     = compat_ptr((from).data); \
+	fb_cmap_from_compat((to).cmap, (from).cmap)
+
+#endif /* CONFIG_COMPAT */
+#endif /* __KERNEL__ */
 
 /*
  * hardware cursor control
