@@ -307,7 +307,7 @@ static void mi_drv_shutdown(struct device *device)
 		mi_shutdown(priv);
 }
 
-static struct device_driver mi_device_driver __refdata = {
+static struct device_driver mi_device_driver = {
 	.name = "mi",
 	.bus = &platform_bus_type,
 	.probe = mi_drv_probe,
