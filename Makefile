@@ -623,6 +623,15 @@ endif
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
 
+ifdef CONFIG_CC_CHECK_WARNING_STRICTLY
+KBUILD_CFLAGS += -fdiagnostics-show-option -Werror \
+                 -Wno-error=unused-function \
+                 -Wno-error=unused-variable \
+                 -Wno-error=unused-value \
+                 -Wno-error=unused-label \
+                 -Wno-address
+endif
+
 ifdef CONFIG_READABLE_ASM
 # Disable optimizations that make assembler listings hard to read.
 # reorder blocks reorders the control in the function
