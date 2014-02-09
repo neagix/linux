@@ -26,3 +26,12 @@ config MMC_CLKGATE
 	  support handling this in order for it to be of any use.
 
 	  If unsure, say N.
+
+config MMC_DISABLE_SPI_CRC
+	bool "Disable MMC software CRCs on data blocks"
+	help
+	  Software CRCs on the data blocks can be a significant (30%)
+	  performance cost, and for other reasons may not always be
+	  desired.  Select this option to disable it.
+	  
+	  If unsure, say N.
