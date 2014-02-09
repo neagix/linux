@@ -319,6 +319,8 @@ static int __init mark_bootmem(unsigned long start, unsigned long end,
 		pos = bdata->node_low_pfn;
 	}
 	BUG();
+
+	return 0;
 }
 
 /**
