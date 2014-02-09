@@ -451,7 +451,7 @@ static void impress_friends(void)
 	pr_info("Total of %d processors activated (%lu.%02lu BogoMIPS)\n",
 		num_online_cpus(),
 		bogosum/(500000/HZ),
-		(bogosum/(5000/HZ))%100);
+		(bogosum * 10/(50000/HZ))%100);
 
 	pr_debug("Before bogocount - setting activated=1\n");
 }
