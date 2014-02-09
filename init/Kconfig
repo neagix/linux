@@ -1494,6 +1494,14 @@ config MAX_NR_CON_DRIVER
 
 	  For embedded systems, a lower number may be preferred value.
 
+config NR_LDISCS
+	int "Number of tty line disciplines" if EXPERT
+	range 1 30
+	default 16
+	help
+	  Select the maximum number of tty line disciplines. Embedded systems
+	  can probably get by with only a few of these.
+
 config SHMEM
 	bool "Use full shmem filesystem" if EXPERT
 	default y
