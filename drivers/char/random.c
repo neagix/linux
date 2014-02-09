@@ -752,6 +752,8 @@ void add_interrupt_randomness(int irq, int irq_flags)
 		__u64 ip = instruction_pointer(regs);
 		input[2] = ip;
 		input[3] = ip >> 32;
+	} else {
+		input[2] = input[3] = 0;
 	}
 
 	fast_mix(fast_pool, input, sizeof(input));
