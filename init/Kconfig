@@ -1502,6 +1502,14 @@ config NR_LDISCS
 	  Select the maximum number of tty line disciplines. Embedded systems
 	  can probably get by with only a few of these.
 
+config MAX_SWAPFILES_SHIFT
+	int "Number of swap files log2 (0 => 1, 5 => 32)" if EXPERT
+	depends on SWAP
+	range 0 5
+	default 5
+	help
+	  Select the maximum number of swapfiles (5 for default).
+
 config SHMEM
 	bool "Use full shmem filesystem" if EXPERT
 	default y

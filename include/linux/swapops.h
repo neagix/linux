@@ -23,6 +23,17 @@
 /*
  * Store a type+offset into a swp_entry_t in an arch-independent format
  */
+
+#ifdef CONFIG_MMU
+/* check whether a pte points to a swap entry */
+static inline int is_swap_pte(pte_t pte)
+{
+	return !pte_none(pte) && !pte_present(pte) && !pte_file(pte);
+}
+#endif
+
+#if MAX_SWAPFILES_SHIFT > 0
+
 static inline swp_entry_t swp_entry(unsigned long type, pgoff_t offset)
 {
 	swp_entry_t ret;
@@ -50,12 +61,25 @@ static inline pgoff_t swp_offset(swp_entry_t entry)
 	return entry.val & SWP_OFFSET_MASK(entry);
 }
 
-#ifdef CONFIG_MMU
-/* check whether a pte points to a swap entry */
-static inline int is_swap_pte(pte_t pte)
+#else /* avoid undefined shift operations */
+
+static inline swp_entry_t swp_entry(unsigned type, pgoff_t offset)
 {
-	return !pte_none(pte) && !pte_present(pte) && !pte_file(pte);
+	swp_entry_t ret;
+	ret.val = offset;
+	return ret;
 }
+
+static inline unsigned swp_type(swp_entry_t entry)
+{
+	return 0;
+}
+
+static inline pgoff_t swp_offset(swp_entry_t entry)
+{
+	return entry.val;
+}
+
 #endif
 
 /*
