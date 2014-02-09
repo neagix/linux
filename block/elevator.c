@@ -184,7 +184,6 @@ static void elevator_release(struct kobject *kobj)
 int elevator_init(struct request_queue *q, char *name)
 {
 	struct elevator_type *e = NULL;
-	int err;
 
 	/*
 	 * q->sysfs_lock must be held to provide mutual exclusion between
@@ -228,8 +227,7 @@ int elevator_init(struct request_queue *q, char *name)
 		}
 	}
 
-	err = e->ops.elevator_init_fn(q, e);
-	return 0;
+	return e->ops.elevator_init_fn(q, e);
 }
 EXPORT_SYMBOL(elevator_init);
 
