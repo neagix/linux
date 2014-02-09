@@ -297,7 +297,7 @@ void calibrate_delay(void)
 	if (!printed)
 		pr_cont("%lu.%02lu BogoMIPS (lpj=%lu)\n",
 			lpj/(500000/HZ),
-			(lpj/(5000/HZ)) % 100, lpj);
+			(lpj * 10 /(50000 / HZ)) % 100, lpj);
 
 	loops_per_jiffy = lpj;
 	printed = true;
