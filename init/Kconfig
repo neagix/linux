@@ -1548,13 +1548,27 @@ config EVENTFD
 
 # syscall, maps, verifier
 config BPF_SYSCALL
-	bool "Enable bpf() system call"
-	select ANON_INODES
-	select BPF
+       bool "Enable bpf() system call"
+       select ANON_INODES
+       select BPF
+        default n
+        help
+         Enable the bpf() system call that allows to manipulate eBPF
+         programs and maps via file descriptors.
+
+config FB_MODEDB
 	default n
+	bool "Configure a preferrable framebuffer mode" if EXPERT
+	depends on FB
 	help
-	  Enable the bpf() system call that allows to manipulate eBPF
-	  programs and maps via file descriptors.
+	  For a specific board there should be a preferrable framebuffer mode, which
+	  which may be not good to allow the users to change.  This can be hardcoded
+	  and will reduce the size of the modedb.  A example mode of 640x480 @ 60Hz
+	  (NTSC) was set here for GAMECUBE_COMMON (GameCube/Wii/vWii), anything else
+	  will require editing/adding the mode manually prior to compiling.
+	  (To add additional modes, edit: drivers/video/modedb.c)
+
+	  If unsure, say N.
 
 config SHMEM
 	bool "Use full shmem filesystem" if EXPERT
