@@ -525,7 +525,6 @@ static int aram_do_shutdown(struct device *dev)
  */
 
 static int aram_of_probe(struct platform_device *odev)
-
 {
 	struct resource res;
 	int retval;

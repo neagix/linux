@@ -2175,7 +2175,6 @@ static int vifb_setup(char *options)
  */
 
 static int vifb_of_probe(struct platform_device *odev)
-
 {
 	struct resource res;
 	const unsigned long *prop;
@@ -2226,7 +2225,7 @@ static struct of_device_id vifb_of_match[] = {
 
 MODULE_DEVICE_TABLE(of, vifb_of_match);
 
-static struct platform_driver vifb_of_driver __refdata = {
+static struct platform_driver vifb_of_driver = {
 	.driver = {
 		.name = DRV_MODULE_NAME,
 		.owner = THIS_MODULE,

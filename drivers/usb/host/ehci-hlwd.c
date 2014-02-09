@@ -83,7 +83,7 @@ static const struct hc_driver ehci_hlwd_hc_driver = {
 	 * generic hardware linkage
 	 */
 	.irq			= ehci_irq,
-	.flags			= HCD_USB2 | HCD_BOUNCE_DMA_MEM,
+	.flags			= HCD_USB2 | HCD_NO_COHERENT_MEM,
 
 	/*
 	 * basic lifecycle operations
