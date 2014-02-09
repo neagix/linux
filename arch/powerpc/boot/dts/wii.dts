@@ -45,7 +45,7 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x00000000 0x01800000	/* MEM1 24MB 1T-SRAM */
+		reg = <0x00000000 0x01698000	/* MEM1 24MB 1T-SRAM */
 		       0x10000000 0x04000000>;	/* MEM2 64MB GDDR3 */
 	};
 
@@ -177,7 +177,7 @@
 			  0x0d800000 0x0d800000 0x00007000
 			  0x133e0000 0x133e0000 0x00c20000>;
 				  
-		ehci@0d040000 {
+		usb@0d040000 {
 			compatible = "nintendo,hollywood-usb-ehci",
 					"usb-ehci";
 			reg = <0x0d040000 0x100
@@ -186,7 +186,7 @@
 			interrupt-parent = <&PIC1>;
 		};
 
-		ohci0@0d050000 {
+		usb@0d050000 {
 			compatible = "nintendo,hollywood-usb-ohci",
 					"usb-ohci";
 			reg = <0x0d050000 0x100
@@ -195,7 +195,7 @@
 			interrupt-parent = <&PIC1>;
 		};
 
-		ohci1@0d060000 {
+		usb@0d060000 {
 			compatible = "nintendo,hollywood-usb-ohci",
 					"usb-ohci";
 			reg = <0x0d060000 0x100
@@ -223,7 +223,7 @@
 		PIC1: pic1@0d800030 {
 			#interrupt-cells = <1>;
 			compatible = "nintendo,hollywood-pic";
-			reg = <0x0d800030 0x8>;
+			reg = <0x0d800030 0x10>;
 			interrupt-controller;
 			interrupts = <14>;
 			interrupt-parent = <&PIC0>;
@@ -268,9 +268,9 @@
 					scl-is-output-only = <1>;
 					udelay = <2>;
 
-					audio-video-encoder {
-						compatible = "nintendo,wii-ave-rvl";
-						reg = <0x70>;
+			        AVE: audio-video-encoder@70 {
+			                compatible = "nintendo,wii-ave-rvl";
+			                reg = <0x70>;
 					};
 			};
 		};

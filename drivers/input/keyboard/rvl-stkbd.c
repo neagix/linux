@@ -460,7 +460,6 @@ static int stkbd_do_remove(struct device *dev)
  */
 
 static int stkbd_of_probe(struct platform_device *odev)
-
 {
 	return stkbd_do_probe(&odev->dev);
 }
