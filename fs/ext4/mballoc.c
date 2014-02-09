@@ -878,6 +878,8 @@ static int ext4_mb_init_cache(struct page *page, char *incore)
 
 	/* wait for I/O completion */
 	for (i = 0, group = first_group; i < groups_per_page; i++, group++) {
+		if (group >= ngroups)
+			break;
 		if (bh[i] && ext4_wait_block_bitmap(sb, group, bh[i])) {
 			err = -EIO;
 			goto out;
@@ -953,7 +955,9 @@ static int ext4_mb_init_cache(struct page *page, char *incore)
 
 out:
 	if (bh) {
-		for (i = 0; i < groups_per_page; i++)
+		for (i = 0, group = first_group;
+		     i < groups_per_page && group < ngroups;
+		     i++, group++)
 			brelse(bh[i]);
 		if (bh != &bhs)
 			kfree(bh);
