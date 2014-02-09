@@ -5,7 +5,7 @@
  * 'tty.h' defines some structures used by tty_io.c and some defines.
  */
 
-#define NR_LDISCS		30
+#define NR_LDISCS		CONFIG_NR_LDISCS
 
 /* line disciplines */
 #define N_TTY		0
