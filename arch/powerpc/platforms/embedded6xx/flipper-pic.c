@@ -132,28 +132,17 @@ static void __flipper_quiesce(void __iomem *io_base)
 
 struct irq_domain * __init flipper_pic_init(struct device_node *np)
 {
-	struct device_node *pi;
-	struct irq_domain *irq_domain = NULL;
+	struct irq_domain *irq_domain;
 	struct resource res;
 	void __iomem *io_base;
 	int retval;
 
-	pi = of_get_parent(np);
-	if (!pi) {
-		pr_err("no parent found\n");
-		goto out;
-	}
-	if (!of_device_is_compatible(pi, "nintendo,flipper-pi")) {
-		pr_err("unexpected parent compatible\n");
-		goto out;
-	}
-
-	retval = of_address_to_resource(pi, 0, &res);
+	retval = of_address_to_resource(np, 0, &res);
 	if (retval) {
 		pr_err("no io memory range found\n");
-		goto out;
+		return NULL;
 	}
-	io_base = ioremap(res.start, resource_size(&res));
+	io_base = ioremap(res.start, res.end - res.start + 1);
 
 	pr_info("controller at 0x%08x mapped to 0x%p\n", res.start, io_base);
 
@@ -166,7 +155,6 @@ struct irq_domain * __init flipper_pic_init(struct device_node *np)
 		return NULL;
 	}
 
-out:
 	return irq_domain;
 }
 

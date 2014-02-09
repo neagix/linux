@@ -243,7 +243,7 @@ xpedite52*)
     platformo=$object/cuboot-85xx.o
     ;;
 gamecube|wii)
-    link_address='0x600000'
+    link_address='0x800000'
     platformo="$object/$platform-head.o $object/$platform.o"
     ;;
 treeboot-currituck)

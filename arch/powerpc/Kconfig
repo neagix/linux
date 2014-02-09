@@ -344,6 +344,7 @@ config IOMMU_HELPER
 
 config SWIOTLB
 	bool "SWIOTLB support"
+	depends on !GAMECUBE_COMMON
 	default n
 	select IOMMU_HELPER
 	---help---
@@ -351,6 +352,7 @@ config SWIOTLB
 	  This allows us to DMA to the full physical address space on
 	  platforms where the size of a physical address is larger
 	  than the bus address.  Not all platforms support this.
+	  Support has been temporarily disabled for GAMECUBE_COMMON.
 
 config HOTPLUG_CPU
 	bool "Support for enabling/disabling CPUs"
