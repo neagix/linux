@@ -26,9 +26,45 @@ BSS_STACK(8192);
 
 #define EXI_CTRL		HW_REG(0x0d800070)
 #define EXI_CTRL_ENABLE		(1<<0)
-
 #define MEM2_TOP		(0x10000000 + 64*1024*1024)
 #define FIRMWARE_DEFAULT_SIZE	(12*1024*1024)
+
+
+static int save_lowmem_stub(void)
+{
+	void *src, *dst;
+	size_t size;
+	u32 reg[2];
+	u32 v;
+	void *devp;
+
+	devp = finddevice("/lowmem-stub");
+	if (devp == NULL) {
+		printf("lowmem-stub: none\n");
+		goto out;
+	}
+
+	if (getprop(devp, "reg", reg, sizeof(reg)) != sizeof(reg)) {
+		printf("unable to find %s property\n", "reg");
+		goto out;
+	}
+	src = (void *)reg[0];
+	size = reg[1];
+	if (getprop(devp, "save-area", &v, sizeof(v)) != sizeof(v)) {
+		printf("unable to find %s property\n", "save-area");
+		goto out;
+	}
+	dst = (void *)v;
+
+	printf("lowmem-stub: relocating from %08lX to %08lX (%u bytes)\n",
+		(unsigned long)src, (unsigned long)dst, size);
+	memcpy(dst, src, size);
+	flush_cache(dst, size);
+
+	return 0;
+out:
+	return -1;
+}
 
 
 struct mipc_infohdr {
@@ -133,6 +169,34 @@ static void platform_fixups(void)
 		setprop(mem, "reg", reg, sizeof(reg));
 	}
 
+	/* fixup local memory for EHCI controller */
+	mem = NULL;
+	while ((mem = find_node_by_compatible(mem,
+					       "nintendo,hollywood-usb-ehci"))) {
+		if (getprop(mem, "reg", &reg, sizeof(reg)) == sizeof(reg)) {
+			mem2_boundary -= reg[3];
+			printf("ehci %08X -> %08X\n", reg[2], mem2_boundary);
+			reg[2] = mem2_boundary;
+			setprop(mem, "reg", &reg, sizeof(reg));
+		}
+	}
+
+	/* fixup local memory for OHCI controllers */
+	mem = NULL;
+	while ((mem = find_node_by_compatible(mem,
+					       "nintendo,hollywood-usb-ohci"))) {
+		if (getprop(mem, "reg", &reg, sizeof(reg)) == sizeof(reg)) {
+			mem2_boundary -= reg[3];
+			printf("ohci %08X -> %08X\n", reg[2], mem2_boundary);
+			reg[2] = mem2_boundary;
+			setprop(mem, "reg", &reg, sizeof(reg));
+		}
+	}
+
+	/* fixup available memory */
+	dt_fixup_memory(0, mem2_boundary);
+	printf("top of mem @ %08X (%s)\n", mem2_boundary, "final");
+
 out:
 	return;
 }
@@ -154,5 +218,6 @@ void platform_init(unsigned long r3, unsigned long r4, unsigned long r5)
 		console_ops.write = ug_console_write;
 
 	platform_ops.fixups = platform_fixups;
+	save_lowmem_stub();
 }
 

@@ -253,3 +253,24 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
 	return sys_kexec_load(entry, nr_segments, ksegments, flags);
 }
 #endif
+int kimage_add_preserved_region(struct kimage *image, unsigned long to,
+				       unsigned long from, int length)
+{
+	int result = 0;
+
+	if (length > 0) {
+		result = kimage_set_destination(image, to);
+		if (result < 0)
+			goto out;
+		while (length > 0) {
+			result = kimage_add_page_noalloc(image, from);
+			if (result < 0)
+				goto out;
+			from += PAGE_SIZE;
+			length -= PAGE_SIZE;
+		}
+	}
+out:
+	return result;
+}
+
