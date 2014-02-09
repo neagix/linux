@@ -945,7 +945,6 @@ out:
  */
 
 static int mipc_of_probe(struct platform_device *odev)
-
 {
 	struct resource mem[2];
 	int error;
