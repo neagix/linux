@@ -49,8 +49,6 @@ This GC/Wii Linux kernel, as with all following the official 2.6.32.y version, a
 
 Due to significant changes since the last official kernel patch release gcLinux, the 2.6.32 (MIKEp5) patch, the MIKEp7 patch currently has some limitations and bugs that still require attention.  Some of these limitations are as follows:  
 
-- In MINI mode, USB storage support is currently broken ("hcd.c").  Most keyboards, mice, USB Ethernet adapters, and other similar devices seem to be fully functional.  Bluetooth/wireless lan doesn't seem to be affected by this.  This was broke as a result of not being able to properly forward port the DMA handling of USB devices for these consoles from 2.6.34-rc4 to 2.6.34.z and newer kernels.
-
 - In MINI mode, older (smaller than 2GB) cards don't all work correctly  
 
 - In IOS mode, external swap partitions don't mount correctly as of kernel version 2.6.39.  As a workaround, use a local swapfile.  A short tutorial can be found at: http://www.cyberciti.biz/faq/linux-add-a-swap-file-howto/
@@ -71,7 +69,7 @@ This bug should be relatively easy to find using git bisect.
 
         "patch < 0001-vfb-defio-gc-wii.diff -p1 -R"  
 
-- Both IOS and MINI also still suffer from the same hardware limitations that they did in 2.6.32.z.  For example, wireless and disc support for Wii consoles is still limited to MINI mode.  Also, DVDs can be mounted as they were in version 2.6.32.z, but due to hardware limitations, it's unable to write to any disc and is unable to read CDs and certain types of DVD's
+- Both IOS and MINI also still suffer from the same hardware limitations that they did in 2.6.32.y.  For example, wireless and disc support for Wii consoles is still limited to MINI mode.  Also, DVDs can be mounted as they were in version 2.6.32.y, but due to hardware limitations, it's unable to write to any disc and is unable to read CDs and certain types of DVD's
     - Support for DVD-RW and DVD-DL disc seems to vary.  Currently, -R and +R (both mini & full-size) DVDs are know to work on both GameCube and Wii consoles.  All WiiU as well as some of the newer Wii disc drives, lack support for DVDs as they don't contain the same type of disc drive.  In other words, support will vary on the age of the console, but most standard GameCube consoles should be able to read mini DVDs (full-sized DVDs are too big for unmodified Gamecube consoles, but they can be read).
     - To mount a disc in a GameCube/Wii Linux distribution, try doing the following:
 
