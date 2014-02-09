@@ -57,6 +57,8 @@
 #include <linux/oom.h>
 #include <linux/compat.h>
 
+#include <trace/events/fs.h>
+
 #include <asm/uaccess.h>
 #include <asm/mmu_context.h>
 #include <asm/tlb.h>
@@ -779,6 +781,10 @@ static struct file *do_open_execat(int fd, struct filename *name, int flags)
 
 	if (file->f_path.mnt->mnt_flags & MNT_NOEXEC)
 		goto exit;
+
+	fsnotify_open(file);
+
+	trace_open_exec(name);
 
 	err = deny_write_access(file);
 	if (err)
