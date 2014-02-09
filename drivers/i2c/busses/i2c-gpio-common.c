@@ -12,7 +12,7 @@
 
 #include <linux/i2c-algo-bit.h>
 #include <linux/gpio.h>
-#include <linux/slab.h> 
+#include <linux/slab.h>
 
 /* Toggle SDA by changing the direction of the pin */
 static void i2c_gpio_setsda_dir(void *data, int state)
