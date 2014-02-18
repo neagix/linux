@@ -75,6 +75,10 @@ series
 cscope.*
 ncscope.*
 
+# modules / firmware files
+lib/modules
+lib/firmware
+
 # gnu global files
 GPATH
 GRTAGS
