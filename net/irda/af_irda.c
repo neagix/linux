@@ -1069,6 +1069,9 @@ static int irda_create(struct net *net, struct socket *sock, int protocol)
 
 	IRDA_DEBUG(2, "%s()\n", __func__);
 
+	if (protocol < 0 || protocol > SK_PROTOCOL_MAX)
+		return -EINVAL;
+
 	if (net != &init_net)
 		return -EAFNOSUPPORT;
 
@@ -1338,8 +1341,6 @@ static int irda_recvmsg_dgram(struct kiocb *iocb, struct socket *sock,
 	if ((err = sock_error(sk)) < 0)
 		return err;
 
-	msg->msg_namelen = 0;
-
 	skb = skb_recv_datagram(sk, flags & ~MSG_DONTWAIT,
 				flags & MSG_DONTWAIT, &err);
 	if (!skb)
@@ -1401,8 +1402,6 @@ static int irda_recvmsg_stream(struct kiocb *iocb, struct socket *sock,
 
 	target = sock_rcvlowat(sk, flags & MSG_WAITALL, size);
 	timeo = sock_rcvtimeo(sk, noblock);
-
-	msg->msg_namelen = 0;
 
 	do {
 		int chunk;

@@ -1452,7 +1452,8 @@ static int resize_stripes(raid5_conf_t *conf, int newsize)
 
 	conf->slab_cache = sc;
 	conf->active_name = 1-conf->active_name;
-	conf->pool_size = newsize;
+	if (!err)
+		conf->pool_size = newsize;
 	return err;
 }
 
@@ -3378,6 +3379,8 @@ static void handle_stripe6(struct stripe_head *sh)
 				pr_debug("Writing block %d\n", i);
 				BUG_ON(!test_bit(R5_UPTODATE, &dev->flags));
 				set_bit(R5_Wantwrite, &dev->flags);
+				if (s.failed > 1)
+					continue;
 				if (!test_bit(R5_Insync, &dev->flags) ||
 				    ((i == sh->pd_idx || i == qd_idx) &&
 				      s.failed == 0))

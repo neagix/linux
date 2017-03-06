@@ -40,7 +40,7 @@ int verify_iovec(struct msghdr *m, struct iovec *iov, struct sockaddr *address, 
 {
 	int size, ct, err;
 
-	if (m->msg_namelen) {
+	if (m->msg_name && m->msg_namelen) {
 		if (mode == VERIFY_READ) {
 			err = move_addr_to_kernel(m->msg_name, m->msg_namelen,
 						  address);
@@ -50,6 +50,7 @@ int verify_iovec(struct msghdr *m, struct iovec *iov, struct sockaddr *address, 
 		m->msg_name = address;
 	} else {
 		m->msg_name = NULL;
+		m->msg_namelen = 0;
 	}
 
 	size = m->msg_iovlen * sizeof(struct iovec);
@@ -152,6 +153,10 @@ int memcpy_fromiovec(unsigned char *kdata, struct iovec *iov, int len)
 int memcpy_fromiovecend(unsigned char *kdata, const struct iovec *iov,
 			int offset, int len)
 {
+	/* No data? Done! */
+	if (len == 0)
+		return 0;
+
 	/* Skip over the finished iovecs */
 	while (offset >= iov->iov_len) {
 		offset -= iov->iov_len;
