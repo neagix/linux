@@ -1,5 +1,5 @@
 ***
-**_Linux kernel for GameCube/Wii/vWii (Branch Version: 3.12.10)_**
+**_Linux kernel for GameCube/Wii/vWii (Branch Version: 3.12.11)_**
 ***
 NOTE: Well, this worked at some point. Going to have to track which patch broke this and 3.10.y
 This is the 3.12.y GC/Wii Linux kernel branch.  A full copy of this repository can be downloaded by using git to clone the full repository as shown below.
@@ -55,8 +55,6 @@ Due to significant changes since the last official kernel patch release gcLinux,
 This bug should be relatively easy to find using git bisect.  
 
 - Both IOS and MINI modes seem to have a bug that prevents Linux from booting if a GameCube Controller is inserted in one of the ports while the serial port is enabled in the config.  This bug is caused by a glitch that was created when forward porting from 2.6.32 to 2.6.33.  It should be possible to find this bug using git bisect.
-
-- GameCube SDL doesn't work properly with the 2.6.36 and newer forward ported kernels.  This bug is currently unknown to be either a kernel or software API bug.  It should be possible to fix this by finding out in which commit in the kernel that this error first starts occuring using git bisect.  
 
 - Only Cube Xorg or Farter's Framebuffer can be used, not both at the same time.  If Xorg is setup to use Cube on the target system, do not use a kernel that was compiled with Farter's framebuffer patch without adjusting the Xorg configuration file (usually in: /etc/X11/xorg.conf).  Using both simultaneously will cause the display to show nothing at best.  Due to this, I've made Farter's framebuffer patch optional by leaving a copy of it seperate in the source so that it could be patched manually at anytime.
 <br>
@@ -136,7 +134,7 @@ Once the system boots, run "dmesg | grep zcache" to see its status (If nothing i
 <br> 
 
 **_Compiled Filesystem/Kernel Demos_**  
-	Wii IOS/MINI kernels (3.12.10):  Uploading...  
+	Wii IOS/MINI kernels (3.12.?):  SERVER_ERROR...  
 	Debian:  https://spideroak.com/browse/share/DeltaResero/wii/Linux/Filesytems/Demos/Debian/
 <br>
 	Ubuntu:  PLANNING...
