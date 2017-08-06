@@ -136,11 +136,11 @@ fi
 if [[ ${MACHINE_TYPE} == 'ppc' ]]; then
   printf "\n\nCross compiler not needed...\n"
   if [[ ${useConfig} != '.config' ]]; then
-    make ${useConfig}
+    make ${useConfig} || exit $?
   fi
-  make menuconfig
-  make clean
-  make -j${numProcessors}
+  make menuconfig && \
+  make clean && \
+  make -j${numProcessors} || exit $?
 
 elif [[ ${MACHINE_TYPE} == 'x86_32' || ${MACHINE_TYPE} == 'x86_64' ]]; then
   while : # Gets the user to select a cross compiler to use
@@ -184,9 +184,9 @@ elif [[ ${MACHINE_TYPE} == 'x86_32' || ${MACHINE_TYPE} == 'x86_64' ]]; then
           make ${useConfig} ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc"
         fi
 
-        make menuconfig ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc"
-        make clean ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc"
-        make -j${numProcessors} ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc"
+        make menuconfig ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc" && \
+        make clean ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc" && \
+        make -j${numProcessors} ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc" || exit $?
         break;;
 
       3) printf "\n\nQuitting script...\n"
@@ -215,9 +215,9 @@ else # !ppc && !x86_32 && !x86_64
           make ${useConfig} ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc"
         fi
 
-        make menuconfig ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc"
-        make clean ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc"
-        make -j${numProcessors} ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc"
+        make menuconfig ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc" && \
+        make clean ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc" && \
+        make -j${numProcessors} ARCH=powerpc GCC_HOST=powerpc-linux-gnu- CROSS_COMPILE=powerpc-linux-gnu- CC="ccache powerpc-linux-gnu-gcc" || exit $?
         break;;
 
       2) printf "\n\nQuitting script...\n"
