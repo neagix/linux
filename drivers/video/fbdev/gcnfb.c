@@ -1884,7 +1884,7 @@ static int vifb_ioctl(struct fb_info *info,
 
 	switch (cmd) {
 	case FBIOWAITRETRACE:
-		interruptible_sleep_on(&ctl->vtrace_waitq);
+		wait_event_interruptible(ctl->vtrace_waitq, signal_pending(current));
 		return signal_pending(current) ? -EINTR : 0;
 	case FBIOFLIPHACK:
 		/*
@@ -1923,7 +1923,7 @@ static int vifb_ioctl(struct fb_info *info,
 			} else {
 				ctl->flip_pending = 1;
 				spin_unlock_irqrestore(&ctl->lock, flags);
-				interruptible_sleep_on(&ctl->vtrace_waitq);
+				wait_event_interruptible(ctl->vtrace_waitq, signal_pending(current));
 				return signal_pending(current) ?
 					-EINTR : ctl->visible_page;
 			}
