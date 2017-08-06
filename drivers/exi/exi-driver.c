@@ -474,7 +474,6 @@ static int exi_init(struct resource *mem, unsigned int irq)
 	if (IS_ERR(exi_bus_task))
 	{
 		drv_printk(KERN_WARNING, "failed to start exi kernel thread\n");
-		return (int)exi_bus_task;
 	}
 
 	return 0;
