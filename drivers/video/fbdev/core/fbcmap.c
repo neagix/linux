@@ -17,7 +17,7 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
-#include "console/fbcondecor.h"
+#include "../../console/fbcondecor.h"
 
 static u16 red2[] __read_mostly = {
     0x0000, 0xaaaa
