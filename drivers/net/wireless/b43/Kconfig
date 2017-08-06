@@ -88,6 +88,16 @@ config B43_SDIO
 
 	  If unsure, say N.
 
+config B43_DEFAULT_QOS_OFF
+	bool "Start with QoS disabled"
+	depends on B43
+	---help---
+	  This will start the driver with Quality Of Service disabled.
+
+	  Say Y if you are using an OpenFWWF firmware without QoS support
+	  and building the b43 driver in-kernel.
+	  Otherwise, say N.
+
 #Data transfers to the device via PIO. We want it as a fallback even
 # if we can do DMA.
 config B43_BCMA_PIO

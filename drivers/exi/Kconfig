@@ -1,0 +1,20 @@
+#
+# Nintendo GameCube EXI (Expansion Interface) support.
+#
+
+if GAMECUBE_COMMON
+
+menu "EXI support"
+
+config GAMECUBE_EXI
+	bool "Nintendo GameCube/Wii External Interface (EXI)"
+	default y
+	help
+	  On the External Interface sit the memory card slots,
+	  serial ports I & II, the Mask ROM, RTC, SRAM and UART.
+
+	  If in doubt, say Y here.
+
+endmenu
+
+endif
