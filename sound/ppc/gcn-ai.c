@@ -487,7 +487,7 @@ static int ai_do_probe(struct device *dev,
 	struct snd_gcn *chip;
 	int retval;
 
-	retval = snd_card_create(index, id, THIS_MODULE, sizeof(struct snd_gcn), &card);
+	retval = snd_card_new(NULL, index, id, THIS_MODULE, sizeof(struct snd_gcn), &card);
 	if (retval < 0) {
 		drv_printk(KERN_ERR, "failed to allocate card\n");
 		return -ENOMEM;
