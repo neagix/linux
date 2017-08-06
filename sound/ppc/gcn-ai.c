@@ -424,7 +424,7 @@ static int ai_init(struct snd_gcn *chip,
 		goto err_new_pcm;
 
 	retval = request_irq(chip->irq, snd_gcn_interrupt,
-			     IRQF_DISABLED | IRQF_SHARED,
+			     IRQF_SHARED,
 			     card->shortname, chip);
 	if (retval) {
 		drv_printk(KERN_ERR, "unable to request IRQ %d\n", chip->irq);
