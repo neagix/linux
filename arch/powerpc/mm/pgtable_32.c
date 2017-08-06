@@ -217,9 +217,17 @@ __ioremap_caller(phys_addr_t addr, unsigned long size, unsigned long flags,
 	 */
 	if (slab_is_available() && (p < virt_to_phys(high_memory)) &&
 	    !(__allow_ioremap_reserved && memblock_is_region_reserved(p, size))) {
-		printk("__ioremap(): phys addr 0x%llx is RAM lr %ps\n",
-		       (unsigned long long)p, __builtin_return_address(0));
-		return NULL;
+			/*
+			 * On some systems, though, we may want to remap normal RAM
+			 * that we have memreserve'd at the device tree.
+			 * But we can't do that safely if we are using BATs.
+			 *
+			 */
+			if (!__map_without_bats) {
+				printk("__ioremap(): phys addr 0x%llx is RAM lr %ps\n",
+					   (unsigned long long)p, __builtin_return_address(0));
+				return NULL;
+			}
 	}
 #endif
 

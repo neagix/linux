@@ -1,0 +1,42 @@
+GPIO-based I2C
+
+Required properties:
+- compatible : should be "virtual,i2c-gpio".
+- gpios : should specify GPIOs used for SDA and SCL lines, in that order.
+- sda-is-open-drain : should be non-zero if SDA gpio is open-drain.
+- sda-enforce-dir : should be non-zero if SDA gpio must be configured for
+		    input before reading and for output before writing.
+- scl-is-open-drain : should be non-zero if SCL gpio is open-drain.
+- scl-is-output-only : should be non-zero if SCL is an output gpio only.
+- udelay : signal toggle delay. SCL frequency is (500 / udelay) kHz
+- timeout : clock stretching timeout in milliseconds.
+
+Example:
+
+GPIO: starlet-gpio@0d8000c0 {
+	compatible = "nintendo,starlet-gpio";
+	reg = <0d8000c0 4>;
+	gpio-controller;
+	#gpio-cells = <2>;
+};
+
+i2c-video {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	compatible = "virtual,i2c-gpio";
+
+	gpios = <&GPIO 10 0	/* SDA line */
+		 &GPIO 11 0	/* SCL line */
+		>;
+	sda-is-open-drain = <1>;
+	sda-enforce-dir = <1>;
+	scl-is-open-drain = <1>;
+	scl-is-output-only = <1>;
+	udelay = <2>;
+
+	audio-video-encoder {
+		compatible = "nintendo,wii-ave-rvl";
+		reg = <70>;
+	};
+};
+
