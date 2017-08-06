@@ -49,4 +49,22 @@ config SND_PS3_DEFAULT_START_DELAY
 	depends on SND_PS3
 	default "2000"
 
+config SND_GAMECUBE
+	tristate "Nintendo GameCube/Wii"
+	depends on SND && GAMECUBE_COMMON
+	help
+	  Say Y here to include support for audio on the Nintendo GameCube/Wii.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called snd-gcn.
+
+config SND_GAMECUBE_MIC
+	tristate "Nintendo GameCube Microphone (DOL-022)"
+	depends on SND && GAMECUBE_EXI
+	help
+	  If you say yes to this option, support will be included for the
+	  Nintendo GameCube Microphone (DOL-022).
+
+	  If in doubt, say N here.
+
 endif	# SND_PPC
