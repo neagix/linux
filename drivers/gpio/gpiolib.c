@@ -2029,9 +2029,8 @@ EXPORT_SYMBOL_GPL(gpiod_count);
  */
 int gpio_direction_is_output(unsigned gpio)
 {
-	struct gpio_desc *desc = &gpio_desc[gpio];
-
-	if (!gpio_is_valid(gpio))
+	struct gpio_desc *desc = gpio_to_desc(gpio);
+	if (desc == NULL)
 		return -EINVAL;
 
 	return test_bit(FLAG_IS_OUT, &desc->flags);
