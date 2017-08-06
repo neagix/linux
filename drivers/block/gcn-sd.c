@@ -1168,7 +1168,7 @@ static int sd_read_request(struct sd_host *host, struct request *req)
 	unsigned long nr_blocks; /* in card blocks */
 	size_t block_len; /* in bytes */
 	unsigned long start;
-	void *buf = req->buffer;
+	void *buf = bio_data(req->bio);
 	int retval;
 
 	/*
@@ -1210,7 +1210,7 @@ static int sdhc_read_request(struct sd_host *host, struct request *req)
 	unsigned long nr_blocks; /* in card blocks */
 	size_t block_len; /* in bytes */
 	unsigned long start;
-	void *buf = req->buffer;
+	void *buf = bio_data(req->bio);
 	int retval;
 
 	start = blk_rq_pos(req);
@@ -1242,7 +1242,7 @@ static int sd_write_request(struct sd_host *host, struct request *req)
 	unsigned long nr_blocks; /* in card blocks */
 	size_t block_len; /* in bytes */
 	unsigned long start;
-	void *buf = req->buffer;
+	void *buf = bio_data(req->bio);
 	int retval;
 
 	/* FIXME?, maybe should use 2^WRITE_BL_LEN blocks */
@@ -1276,7 +1276,7 @@ static int sdhc_write_request(struct sd_host *host, struct request *req)
 	unsigned long nr_blocks; /* in card blocks */
 	size_t block_len; /* in bytes */
 	unsigned long start;
-	void *buf = req->buffer;
+	void *buf = bio_data(req->bio);
 	int retval;
 
 	/* FIXME?, maybe should use 2^WRITE_BL_LEN blocks */

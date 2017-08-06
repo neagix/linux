@@ -36,6 +36,8 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of_platform.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/timer.h>
@@ -1428,7 +1430,7 @@ static void di_do_request(struct request_queue *q)
 		if (len & (DI_SECTOR_SIZE-1))
 			pr_devel("len=%u\n", len);
 
-		di_op_readsector(cmd, ddev, start, req->buffer, len);
+		di_op_readsector(cmd, ddev, start, bio_data(req->bio), len);
 		cmd->done_data = cmd;
 		cmd->done = di_request_done;
 		di_run_command(cmd);
