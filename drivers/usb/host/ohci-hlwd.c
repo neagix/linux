@@ -284,7 +284,7 @@ static int ohci_hcd_hlwd_probe(struct platform_device *op)
 
 	ohci_hcd_init(ohci);
 
-	error = usb_add_hcd(hcd, irq, IRQF_DISABLED);
+	error = usb_add_hcd(hcd, irq, 0);
 	if (error)
 		goto err_add_hcd;
 
