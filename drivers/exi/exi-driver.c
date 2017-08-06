@@ -20,6 +20,8 @@
 #include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/of_platform.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
 #include <linux/dma-mapping.h>
 
 #define DRV_MODULE_NAME	"exi"
@@ -385,7 +387,6 @@ static void exi_bus_rescan(void)
 	}
 }
 
-
 static struct task_struct *exi_bus_task;
 wait_queue_head_t exi_bus_waitq;
 
@@ -413,7 +414,7 @@ static int exi_bus_thread(void *__unused)
 			}
 		}
 
-		sleep_on_timeout(&exi_bus_waitq, HZ);
+		wait_event_timeout(exi_bus_waitq, kthread_should_stop(), HZ);
 	}
 
 	return 0;
@@ -471,7 +472,10 @@ static int exi_init(struct resource *mem, unsigned int irq)
 	init_waitqueue_head(&exi_bus_waitq);
 	exi_bus_task = kthread_run(exi_bus_thread, NULL, "kexid");
 	if (IS_ERR(exi_bus_task))
+	{
 		drv_printk(KERN_WARNING, "failed to start exi kernel thread\n");
+		return (int)exi_bus_task;
+	}
 
 	return 0;
 

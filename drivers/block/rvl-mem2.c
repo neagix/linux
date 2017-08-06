@@ -17,6 +17,7 @@
 #include <linux/module.h>
 #include <linux/major.h>
 #include <linux/of_platform.h>
+#include <linux/of_address.h>
 #include <linux/blkdev.h>
 #include <linux/fcntl.h>	/* O_ACCMODE */
 #include <linux/hdreg.h>	/* HDIO_GETGEO */
@@ -94,10 +95,10 @@ static void mem2_do_request(struct request_queue *q)
 
 		switch (rq_data_dir(req)) {
 		case READ:
-			memcpy(req->buffer, drvdata->io_base + mem2_addr, len);
+			memcpy(bio_data(req->bio), drvdata->io_base + mem2_addr, len);
 			break;
 		case WRITE:
-			memcpy(drvdata->io_base + mem2_addr, req->buffer, len);
+			memcpy(drvdata->io_base + mem2_addr, bio_data(req->bio), len);
 			break;
 		}
 		error = 0;
