@@ -282,7 +282,6 @@ int starlet_discover_ipc_flavour(void)
 	}
 
 	ppc_md.restart = wii_restart;
-	ppc_md.power_off = wii_power_off;
 
 	return 0;
 }
@@ -382,7 +381,6 @@ define_machine(wii) {
 	.init_early		= wii_init_early,
 	.setup_arch		= wii_setup_arch,
 	.restart		= wii_restart,
-	.power_off		= wii_power_off,
 	.show_cpuinfo		= wii_show_cpuinfo,
 	.halt			= wii_halt,
 	.init_IRQ		= wii_pic_probe,
