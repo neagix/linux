@@ -1769,7 +1769,7 @@ static int stsd_do_request(struct stsd_host *host, struct request *req)
 	nr_blocks = blk_rq_cur_sectors(req);
 
 	error = stsd_do_block_transfer(host, write,
-					start, req->buffer, nr_blocks);
+					start, bio_data(req->bio), nr_blocks);
 	if (error)
 		DBG("%s: error=%d (%08x), start=%lu, \n", __func__,
 		    error, error, start);
