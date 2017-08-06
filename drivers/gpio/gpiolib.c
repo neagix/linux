@@ -1804,6 +1804,25 @@ static struct gpio_desc *gpiod_find(struct device *dev, const char *con_id,
 }
 
 /**
+ * gpio_direction_is_output - tell if a gpio is configured as an output
+ * @gpio: gpio in question
+ *
+ * Returns a negative errno if the given gpio is not valid.
+ * Returns a positive non-zero if the gpio is configured as an output.
+ * Returns zero otherwise.
+ */
+int gpio_direction_is_output(unsigned gpio)
+{
+	struct gpio_desc *desc = &gpio_desc[gpio];
+
+	if (!gpio_is_valid(gpio))
+		return -EINVAL;
+
+	return test_bit(FLAG_IS_OUT, &desc->flags);
+}
+EXPORT_SYMBOL_GPL(gpio_direction_is_output);
+
+/**
  * gpiod_get - obtain a GPIO for a given GPIO function
  * @dev:	GPIO consumer, can be NULL for system-global GPIOs
  * @con_id:	function within the GPIO consumer

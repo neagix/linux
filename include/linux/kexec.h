@@ -64,10 +64,11 @@
  */
 
 typedef unsigned long kimage_entry_t;
-#define IND_DESTINATION  0x1
-#define IND_INDIRECTION  0x2
-#define IND_DONE         0x4
-#define IND_SOURCE       0x8
+#define IND_DESTINATION  0x01
+#define IND_INDIRECTION  0x02
+#define IND_DONE         0x04
+#define IND_SOURCE       0x08
+#define IND_NOALLOC      0x10 /* special case for memory preserving code */
 
 struct kexec_segment {
 	/*
@@ -226,6 +227,8 @@ extern int kexec_purgatory_get_set_symbol(struct kimage *image,
 					  unsigned int size, bool get_value);
 extern void *kexec_purgatory_get_symbol_addr(struct kimage *image,
 					     const char *name);
+extern int kimage_add_preserved_region(struct kimage *image, unsigned long to,
+				       unsigned long from, int length);
 extern void crash_kexec(struct pt_regs *);
 int kexec_should_crash(struct task_struct *);
 void crash_save_cpu(struct pt_regs *regs, int cpu);
