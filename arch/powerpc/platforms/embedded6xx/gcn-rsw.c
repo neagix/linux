@@ -127,11 +127,11 @@ static irqreturn_t rsw_handler(int irq, void *data)
 
 		/* schedule a reboot in a few seconds */
 		init_timer(&drvdata->timer);
-		drvdata->timer.expires = jiffies + drvdata->timeout * HZ;
+		drvdata->jiffies = jiffies;
+		drvdata->timer.expires = drvdata->jiffies + drvdata->timeout * HZ;
 		drvdata->timer.function =
 		    (void (*)(unsigned long))rsw_normal_restart;
 		add_timer(&drvdata->timer);
-		drvdata->jiffies = jiffies;
 		break;
 	case NORMAL_RESET:
 		if (time_before(jiffies,
