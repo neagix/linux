@@ -1738,6 +1738,8 @@ config FB_GAMECUBE
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
+	select FB_SYS_FOPS
+	select FB_DEFERRED_IO
 	help
 	  This is the frame buffer device driver for the Nintendo GameCube.
 
