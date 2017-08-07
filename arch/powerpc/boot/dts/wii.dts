@@ -33,7 +33,7 @@
 		//bootargs = "nobats root=/dev/nfs nfsroot=192.168.001.253:/nfsroot/cube ip=on video=gcnfb:tv=NTSC force_keyboard_port=4";
 
 		/* root filesystem on 2nd partition of SD card ("Whiite" style)  */
-		bootargs = "console=ttyUSB0 console=tty0 nobats root=/dev/sda1 rootwait force_keyboard_port=4 video=gcnfb:60Hz tv=auto loader=mini";
+		bootargs = "console=ttyUSB0,115200 console=tty0 nobats root=/dev/sda1 rootwait force_keyboard_port=4 video=gcnfb:60Hz tv=auto loader=mini";
 		//bootargs = "nobats root=/dev/rvlsda2 rootwait force_keyboard_port=4 video=gcnfb:60Hz tv=auto loader=ios  nostalgic_ios_placeholder_for_additional_kernel_options_appended_here_using_a_hex_editor";
 
 	};
