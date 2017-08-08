@@ -18,6 +18,8 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/of_platform.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
 #include <linux/io.h>
 #include <linux/dma-mapping.h>
 #include <linux/slab.h>
