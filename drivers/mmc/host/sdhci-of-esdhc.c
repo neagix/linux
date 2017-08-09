@@ -20,6 +20,7 @@
 #include <linux/module.h>
 #include <linux/mmc/host.h>
 #include "sdhci-pltfm.h"
+#include "sdhci.h"
 #include "sdhci-esdhc.h"
 
 #define VENDOR_V_22	0x12

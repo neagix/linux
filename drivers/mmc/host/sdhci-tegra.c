@@ -28,6 +28,7 @@
 
 #include <asm/gpio.h>
 
+#include "sdhci.h"
 #include "sdhci-pltfm.h"
 
 /* Tegra SDHOST controller vendor register definitions */
