@@ -26,16 +26,12 @@
 	#size-cells = <1>;
 
 	chosen {
-		/* ramdisk example */
-		//bootargs = "nobats root=/dev/ram0 video=gcnfb ip=on force_keyboard_port=4";
-
-		/* nfsroot example */
-		//bootargs = "nobats root=/dev/nfs nfsroot=192.168.001.253:/nfsroot/cube ip=on video=gcnfb:tv=NTSC force_keyboard_port=4";
-
-		/* root filesystem on 2nd partition of SD card ("Whiite" style)  */
-		bootargs = "console=ttyUSB0,115200 console=tty0 nobats root=/dev/sda1 rootwait force_keyboard_port=4 video=gcnfb:60Hz tv=auto loader=mini";
-		//bootargs = "nobats root=/dev/rvlsda2 rootwait force_keyboard_port=4 video=gcnfb:60Hz tv=auto loader=ios  nostalgic_ios_placeholder_for_additional_kernel_options_appended_here_using_a_hex_editor";
-
+		/* root filesystem on 2nd partition of SD card ("Whiite" style)
+		   you can also use /dev/rvlsda2 (memory card), /dev/ram0 (ramdisk), /dev/sda1 (USB mass storage) or NFS: root=/dev/nfs nfsroot=192.168.1.10:/nfsroot/cube ip=on
+                   to boot from IOS use loader=ios; extra spaces allow editing via hexadecimal editor.
+		   See README.md for documentation.
+		*/
+		bootargs = "console=ttyUSB0,115200 root=/dev/sda2                                                                        force_keyboard_port=4 video=gcnfb:60Hz tv=auto loader=mini nobats rootwait";
 	};
 
 	lowmem-stub {
