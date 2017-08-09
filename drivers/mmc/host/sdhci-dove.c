@@ -26,6 +26,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 
+#include "sdhci.h"
 #include "sdhci-pltfm.h"
 
 struct sdhci_dove_priv {
