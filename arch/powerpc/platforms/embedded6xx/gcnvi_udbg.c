@@ -151,7 +151,7 @@ static void console_putc(struct console_data *con, char c)
 	}
 }
 
-static void console_init(struct console_data *con, void *framebuffer,
+void gcnvi_console_init(struct console_data *con, void *framebuffer,
 			 int xres, int yres, int stride)
 {
 	int c;
@@ -308,7 +308,7 @@ void __init gcnvi_udbg_init(void)
 		return;
 
 	vi_setup_video(io_base, xfb_start);
-	console_init(&gcnvi_udbg_console, screen_base,
+	gcnvi_console_init(&gcnvi_udbg_console, screen_base,
 		     SCREEN_WIDTH, SCREEN_HEIGHT, 2 * SCREEN_WIDTH);
 
 	udbg_putc = gcnvi_udbg_putc;
