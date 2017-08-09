@@ -79,8 +79,14 @@ static void mem2_do_request(struct request_queue *q)
 	while (req) {
 		error = -EIO;
 
-		if (req->cmd_type != REQ_TYPE_FS)
-			goto done;
+		switch (req_op(req)) {
+			case REQ_OP_READ:
+			case REQ_OP_WRITE:
+				// accept only read and write
+			break;
+			default:
+				goto done;
+		}
 
 		/* calculate the MEM2 address and length */
 		mem2_addr = blk_rq_pos(req) << 9;

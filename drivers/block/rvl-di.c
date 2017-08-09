@@ -1398,8 +1398,14 @@ static void di_do_request(struct request_queue *q)
 		blk_start_request(req);
 		error = -EIO;
 
-		if (req->cmd_type != REQ_TYPE_FS)
-			goto done;
+		switch (req_op(req)) {
+			case REQ_OP_READ:
+			case REQ_OP_WRITE:
+				// accept only read and write
+			break;
+			default:
+				goto done;
+		}
 
 		/* it doesn't make sense to write to this device */
 		if (unlikely(rq_data_dir(req) == WRITE)) {

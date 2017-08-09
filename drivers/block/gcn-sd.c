@@ -62,6 +62,7 @@
 #include <linux/major.h>
 #include <linux/module.h>
 #include <linux/slab.h>
+#include "../mmc/core/card.h"
 
 /*
  * The existing Linux MMC layer does not support SPI operation yet.
@@ -1312,8 +1313,14 @@ static int sd_check_request(struct sd_host *host, struct request *req)
 {
 	unsigned long nr_sectors;
 
-	if (req->cmd_type != REQ_TYPE_FS)
-		return -EIO;
+	switch (req_op(req)) {
+		case REQ_OP_READ:
+		case REQ_OP_WRITE:
+			// accept only read and write
+		break;
+		default:
+			return -EIO;
+	}
 
 	if (test_bit(__SD_MEDIA_CHANGED, &host->flags)) {
 		sd_printk(KERN_ERR, "media changed, aborting\n");
