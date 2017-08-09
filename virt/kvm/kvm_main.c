@@ -192,7 +192,7 @@ bool kvm_make_all_cpus_request(struct kvm *kvm, unsigned int req)
 	int i, cpu, me;
 	cpumask_var_t cpus;
 	bool called = true;
-	bool wait = req & KVM_REQUEST_WAIT;
+	// bool wait = req & KVM_REQUEST_WAIT;
 	struct kvm_vcpu *vcpu;
 
 	zalloc_cpumask_var(&cpus, GFP_ATOMIC);
