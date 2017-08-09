@@ -428,7 +428,7 @@ struct ohci_hcd {
 	unsigned		restart_work:1;
 
 	unsigned long		flags;		/* for HC bugs */
-#define	OHCI_QUIRK_WII		0x800			/* Hollywood chipset */
+#define	OHCI_QUIRK_WII		0x1000			/* Hollywood chipset */
 #define	OHCI_QUIRK_AMD756	0x01			/* erratum #4 */
 #define	OHCI_QUIRK_SUPERIO	0x02			/* natsemi */
 #define	OHCI_QUIRK_INITRESET	0x04			/* SiS, OPTi, ... */
