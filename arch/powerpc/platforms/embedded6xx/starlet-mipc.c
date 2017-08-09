@@ -634,7 +634,7 @@ int mipc_discover(struct mipc_infohdr **hdrp)
 	}
 
 	hdr = (struct mipc_infohdr *)ioremap_prot(*p, sizeof(*hdr),
-						      PAGE_KERNEL);
+						      pgprot_val(PAGE_KERNEL));
 	if (!hdr) {
 		pr_err("unable to ioremap mini ipc header\n");
 		error = -ENOMEM;
