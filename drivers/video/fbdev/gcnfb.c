@@ -30,6 +30,7 @@
 #include <linux/string.h>
 #include <linux/tty.h>
 #include <linux/wait.h>
+#include <linux/sched/signal.h>
 #include <linux/io.h>
 #ifdef CONFIG_WII_AVE_RVL
 #include <linux/i2c.h>
