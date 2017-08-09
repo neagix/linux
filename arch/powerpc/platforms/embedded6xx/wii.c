@@ -282,7 +282,6 @@ int starlet_discover_ipc_flavour(void)
 	}
 
 	ppc_md.restart = wii_restart;
-	ppc_md.power_off = wii_power_off;
 
 	return 0;
 }
