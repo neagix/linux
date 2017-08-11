@@ -31,7 +31,7 @@
                    to boot from IOS use loader=ios; extra spaces allow editing via hexadecimal editor.
 		   See README.md for documentation.
 		*/
-		bootargs = "console=ttyUSB0,115200 root=/dev/sda2                                                                        force_keyboard_port=4 video=gcnfb:60Hz tv=auto loader=mini nobats rootwait";
+		bootargs = "mark.start=1 root=/dev/mmcblk0p2 console=tty0 console=ttyUSB0,115200 force_keyboard_port=4 video=gcnfb:tv=auto loader=mini nobats rootwait                         mark.end=1";
 	};
 
 	lowmem-stub {
