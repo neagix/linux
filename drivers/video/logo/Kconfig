@@ -47,6 +47,11 @@ config LOGO_GAMECUBE_CLUT224
 	depends on GAMECUBE
 	default y
 
+config LOGO_WII_CLUT224
+	bool "224-color Wii Linux logo"
+	depends on WII
+	default y
+
 config LOGO_MAC_CLUT224
 	bool "224-color Macintosh Linux logo"
 	depends on MAC
