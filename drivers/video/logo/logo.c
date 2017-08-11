@@ -75,6 +75,10 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 		/* GameCube Linux logo */
 		logo = &logo_gcn_clut224;
 #endif
+#ifdef CONFIG_LOGO_WII_CLUT224
+		/* Wii Linux logo */
+		logo = &logo_wii_clut224;
+#endif
 #ifdef CONFIG_LOGO_MAC_CLUT224
 		/* Macintosh Linux logo on m68k */
 		if (MACH_IS_MAC)
