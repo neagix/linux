@@ -357,6 +357,7 @@ static struct kvmppc_bat *kvmppc_find_bat(struct kvm_vcpu *vcpu, int sprn)
 		break;
 	default:
 		BUG();
+		return NULL;
 	}
 
 	return bat;
