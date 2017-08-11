@@ -6,6 +6,28 @@ Up-to-date documentation and scripts can always be found on the [master branch](
 
 Feel free to open Issues/Pull requests for improvement/discussion purposes.
 
+## How it works
+
+wii-linux-ngx works with an SD card (or USB mass storage) with the following layout:
+* first partition, FAT16 with MINI and Bootmii and main/fallback bootloader, provided here as well for ease of use
+* second partition with ext3 Linux rootfs
+
+You can add other partitions at your choice; performance of SD cards is better than USB mass storage.
+
+You can use Priiloader to make Bootmii your default choice, effectively creating this chain:
+
+```
+Wii power on -> MINI -> (Bootmii ->) Linux kernel zImage
+```
+
+The BootMii step is optional, but there is currently [an open bug that prevents video from correctly working](https://github.com/neagix/wii-linux-ngx/issues/2) (please report if it works for you instead).
+Summary:
+
+* if you wish to boot into Bootmii GUI, make sure `/bootmii/zImage` is renamed to something else like `zImage.dis` (default)
+* if you wish to boot directly into Linux kernel, put your kernel in `/bootmii/zImage`
+
+This customized mini is available at: https://github.com/neagix/mini
+
 ## History
 
 Chronological history of Linux for Wii/GameCube:
