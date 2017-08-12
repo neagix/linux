@@ -1,5 +1,7 @@
 # wii-linux-ngx
 
+![Tux + Wii]({{ site.url }}/wii-linux-ngx/tux-wii.png)
+
 Running modern Linux on Wii consoles.
 
 This project provides:
@@ -8,8 +10,6 @@ This project provides:
 * ready to use Debian Jessie images/rootfs
 
 See [README](https://github.com/neagix/wii-linux-ngx/tree/master) for a full description and instructions.
-
-![Tux + Wii]({{ site.url }}/wii-linux-ngx/tux-wii.png)
 
 # Releases
 
