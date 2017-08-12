@@ -29,6 +29,7 @@
 #include <linux/of_irq.h>
 #include <linux/string.h>
 #include <linux/tty.h>
+#include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/io.h>
 #ifdef CONFIG_WII_AVE_RVL
@@ -534,7 +535,14 @@ static int force_tv;
 
 static u32 pseudo_palette[17];
 
-
+/*
+ * fb_start: addr of the physical fb
+ * fb_mem:   virt (mapped) addr of physical fb
+ * fb_size:  size of physical fb
+ */
+static unsigned long fb_start;
+static void *fb_mem;
+static unsigned int fb_size;
 
 /*
  *
@@ -587,8 +595,9 @@ static inline void gcngx_dispatch_vtrace(struct vi_ctl *ctl)
 /*
  * Converts two 16bpp rgb pixels into a dual yuy2 pixel.
  */
-static inline uint32_t rgbrgb16toycbycr(uint16_t rgb1, uint16_t rgb2)
+static inline uint32_t rgbrgb16toycbycr(uint32_t rgb1rgb2)
 {
+	uint16_t rgb1 = rgb1rgb2 >> 16, rgb2 = rgb1rgb2 & 0xFFFF;
 	register int Y1, Cb, Y2, Cr;
 	register int r1, g1, b1;
 	register int r2, g2, b2;
@@ -1243,6 +1252,28 @@ static void vi_dispatch_vtrace(struct vi_ctl *ctl)
 {
 	unsigned long flags;
 
+	/* Copy and convert contents of virtual framebuffer */
+	struct fb_info *info = ctl->info;
+	unsigned int width = info->fix.line_length >> 2;
+	unsigned int height = info->var.yres;
+	uint32_t *addr0 = (uint32_t *)info->screen_base;
+	uint32_t *addr1 = fb_mem;
+	uint32_t *addr2 = addr0 + width * height;
+
+	while (height--) {
+		int j = width;
+		while (j--) {
+			uint32_t k = *(addr0 + j);
+			if ( k != *(addr2 + j)) {
+				*(addr2 + j) = k;
+				*(addr1 + j) = rgbrgb16toycbycr(k);
+			}
+		}
+		addr0 += width;
+		addr1 += width;
+		addr2 += width;
+	}
+
 	spin_lock_irqsave(&ctl->lock, flags);
 	if (ctl->flip_pending)
 		vi_flip_page(ctl);
@@ -1581,13 +1612,13 @@ static struct i2c_driver vi_ave_driver = {
 /*
  * This is just a quick, dirty and cheap way of getting right colors on the
  * linux framebuffer console.
- */
+
 unsigned int vifb_writel(unsigned int rgbrgb, void *address)
 {
 	uint16_t *rgb = (uint16_t *)&rgbrgb;
 	return fb_writel_real(rgbrgb16toycbycr(rgb[0], rgb[1]), address);
 }
-
+ */
 static int vifb_setcolreg(unsigned regno, unsigned red, unsigned green,
 			   unsigned blue, unsigned transp, struct fb_info *info)
 {
@@ -1813,12 +1844,13 @@ static int vifb_set_par(struct fb_info *info)
 	/* horizontal line in bytes */
 	info->fix.line_length = var->xres_virtual * (var->bits_per_pixel / 8);
 
-	ctl->page_address[0] = info->fix.smem_start;
-	if (var->yres * info->fix.line_length <= info->fix.smem_len / 2)
+	/* info->smem_* refer to vfb, here we wanna store physical fb info */
+	ctl->page_address[0] = fb_start;
+	if (var->yres * info->fix.line_length <= fb_size / 2)
 		ctl->page_address[1] =
-		    info->fix.smem_start + var->yres * info->fix.line_length;
+		    fb_start + var->yres * info->fix.line_length;
 	else
-		ctl->page_address[1] = info->fix.smem_start;
+		ctl->page_address[1] = fb_start;
 
 	/* set page 0 as the visible page and cancel pending flips */
 	spin_lock_irqsave(&ctl->lock, flags);
@@ -1872,6 +1904,38 @@ static int vifb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 				vma->vm_page_prot))
 		return -EAGAIN;
 	return 0;
+}
+
+static int vfb_mmap(struct fb_info *info,
+		    struct vm_area_struct *vma)
+{
+	unsigned long start = vma->vm_start;
+	unsigned long size = vma->vm_end - vma->vm_start;
+	unsigned long offset = vma->vm_pgoff << PAGE_SHIFT;
+	unsigned long page, pos;
+
+	if (offset + size > info->fix.smem_len) {
+		return -EINVAL;
+	}
+
+	pos = (unsigned long)info->fix.smem_start + offset;
+
+	while (size > 0) {
+		page = vmalloc_to_pfn((void *)pos);
+		if (remap_pfn_range(vma, start, page, PAGE_SIZE, PAGE_SHARED)) {
+			return -EAGAIN;
+		}
+		start += PAGE_SIZE;
+		pos += PAGE_SIZE;
+		if (size > PAGE_SIZE)
+			size -= PAGE_SIZE;
+		else
+			size = 0;
+	}
+
+	vma->vm_flags |= (VM_DONTEXPAND | VM_DONTDUMP);	/* avoid to swap out this VMA */
+	return 0;
+
 }
 
 static int vifb_ioctl(struct fb_info *info,
@@ -1938,11 +2002,10 @@ static int vifb_ioctl(struct fb_info *info,
 struct fb_ops vifb_ops = {
 	.owner = THIS_MODULE,
 	.fb_setcolreg = vifb_setcolreg,
-	.fb_pan_display = vifb_pan_display,
 	.fb_ioctl = vifb_ioctl,
 	.fb_set_par = vifb_set_par,
 	.fb_check_var = vifb_check_var,
-	.fb_mmap = vifb_mmap,
+	.fb_mmap = vfb_mmap,
 	.fb_fillrect = cfb_fillrect,
 	.fb_copyarea = cfb_copyarea,
 	.fb_imageblit = cfb_imageblit,
@@ -1977,28 +2040,61 @@ static int vifb_do_probe(struct device *dev,
 	ctl->io_base = ioremap(mem->start, mem->end - mem->start + 1);
 	ctl->irq = irq;
 
+	void *vfb_mem;
+	unsigned long adr;
+	unsigned long size = PAGE_ALIGN(xfb_size);
+	vfb_mem = vmalloc_32(size);
+	if (!vfb_mem) {
+		drv_printk(KERN_ERR, "failed to allocate virtual framebuffer\n");
+		error = -ENOMEM;
+		goto err_framebuffer_alloc;
+	}
+        else {
+		memset(vfb_mem, 0, size);
+		adr = (unsigned long)vfb_mem;
+		while (size > 0) {
+			SetPageReserved(vmalloc_to_page((void *)adr));
+			adr += PAGE_SIZE;
+			size -= PAGE_SIZE;
+		}
+		drv_printk(KERN_INFO,
+			   "virtual framebuffer at 0x%p, size %dk\n",
+			   vfb_mem, PAGE_ALIGN(xfb_size) / 1024);
+	}
+
 	/*
 	 * Location and size of the external framebuffer.
 	 */
-	info->fix.smem_start = xfb_start;
+	info->fix.smem_start = (unsigned long) vfb_mem;
 	info->fix.smem_len = xfb_size;
 
-	if (!request_mem_region(info->fix.smem_start, info->fix.smem_len,
+	if (!request_mem_region(xfb_start, xfb_size,
 				DRV_MODULE_NAME)) {
 		drv_printk(KERN_WARNING,
 			   "failed to request video memory at %p\n",
-			   (void *)info->fix.smem_start);
+			   (void *)xfb_start);
 	}
 
-	info->screen_base = ioremap(info->fix.smem_start, info->fix.smem_len);
-	if (!info->screen_base) {
+	/* Save the physical fb info */
+	fb_start = xfb_start;
+	fb_size = xfb_size;
+	fb_mem = ioremap(fb_start, fb_size);
+	if (!fb_mem) {
 		drv_printk(KERN_ERR,
 			   "failed to ioremap video memory at %p (%dk)\n",
-			   (void *)info->fix.smem_start,
+			   (void *)fb_start,
 			   info->fix.smem_len / 1024);
 		error = -EIO;
 		goto err_ioremap;
 	}
+
+	/* Clear screen */
+	int i = fb_size >> 2;
+	uint32_t * j = (uint32_t *)fb_mem;
+	while (i--) {
+		*(j++) = 0x10801080;
+	}
+	info->screen_base = (char __iomem *)vfb_mem;
 
 	spin_lock_init(&ctl->lock);
 	init_waitqueue_head(&ctl->vtrace_waitq);
@@ -2075,9 +2171,17 @@ err_check_var:
 err_request_irq:
 	fb_dealloc_cmap(&info->cmap);
 err_alloc_cmap:
-	iounmap(info->screen_base);
+	iounmap(fb_mem);
 err_ioremap:
-	release_mem_region(info->fix.smem_start, info->fix.smem_len);
+	release_mem_region(fb_start, fb_size);
+	adr = info->fix.smem_start;
+	size = PAGE_ALIGN(fb_size);
+	while ((long) size > 0) {
+		ClearPageReserved(vmalloc_to_page((void *)adr));
+		adr += PAGE_SIZE;
+		size -= PAGE_SIZE;
+	}
+	vfree((void *)info->fix.smem_start);
 
 	dev_set_drvdata(dev, NULL);
 	iounmap(ctl->io_base);
@@ -2097,8 +2201,17 @@ static int vifb_do_remove(struct device *dev)
 	free_irq(ctl->irq, dev);
 	unregister_framebuffer(info);
 	fb_dealloc_cmap(&info->cmap);
-	iounmap(info->screen_base);
-	release_mem_region(info->fix.smem_start, info->fix.smem_len);
+	iounmap(fb_mem);
+	release_mem_region(fb_start, fb_size);
+
+	unsigned long adr = info->fix.smem_start;
+	unsigned long size = PAGE_ALIGN(fb_size);
+	while ((long) size > 0) {
+		ClearPageReserved(vmalloc_to_page((void *)adr));
+		adr += PAGE_SIZE;
+		size -= PAGE_SIZE;
+	}
+	vfree((void *)info->fix.smem_start);
 
 	dev_set_drvdata(dev, NULL);
 	iounmap(ctl->io_base);
