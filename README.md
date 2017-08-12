@@ -1,4 +1,8 @@
-# Linux kernel for GameCube/Wii/vWii
+# A modern Linux kernel for Wii
+
+![Tux + Wii](docs/tux-wii.png)
+
+https://neagix.github.io/wii-linux-ngx/
 
 The [wii-linux-ngx repository](https://github.com/neagix/wii-linux-ngx) contains Linux kernel branches with rebased patches for the purpose of running a modern Linux distribution on the Wii.
 
@@ -34,9 +38,15 @@ This customized mini is available at: https://github.com/neagix/mini
 
 Currently not tested on GameCube.
 
+### vWii
+
+Currently not tested on virtual Wii.
+
 ## Default credentials
 
-The SD image and rootfs have `root:root` credentials; `ttyUSB0` is enabled as serial console and login terminal, but only the PL2303 driver is included in the kernel.
+The SD image and rootfs have `root:root` credentials.
+
+If you prefer to login via USB serial console, edit the last line of `/etc/inittab` in order to use `ttyUSB0` as a login terminal; you might need to recompile the kernel with your serial-over-USB driver as only the PL2303 driver is included.
 
 ## History
 
@@ -68,9 +78,7 @@ Experimental branches:
 
 ## Known issues
 
-Combinations not tested:
-* GameCube
-* Boot from IOS
+Boot from MINI is well tested, but not boot from IOS.
 
 Bugs probably introduced in the port of MIKEp5 from v2.6 to v3.x tree:
 * In IOS mode, external swap partitions don't mount correctly as of kernel version 2.6.39. As a workaround, use a local swapfile (This bug should be relatively easy to find using git bisect)
