@@ -9,6 +9,8 @@ This project provides:
 
 See [README](https://github.com/neagix/wii-linux-ngx/tree/master) for a full description and instructions.
 
+![Tux + Wii]({{ site.url }}/wii-linux-ngx/tux-wii.png)
+
 # Releases
 
 * [https://github.com/neagix/wii-linux-ngx/releases](https://github.com/neagix/wii-linux-ngx/releases)
