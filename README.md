@@ -65,7 +65,39 @@ Due to significant changes since the last official kernel patch release gcLinux,
     In other words, support will vary on the age of the console, but most standard GameCube consoles should be able to read mini DVDs (full-sized DVDs are too big for unmodified Gamecube consoles, but they can be read).
     
 See [open issues](https://github.com/neagix/wii-linux-ngx/issues).
-    
+
+## Changing bootargs with baedit
+
+It is possible to change kernel command line arguments (also known as `bootargs` from the DTS file) with a hex editor, with (very careful) usage of `sed`, or with the provided `baedit` tool.
+
+To show current bootargs embedded in the kernel:
+```
+$ baedit zImage
+>OK: 3201336 bytes read
+current  bootargs = 'root=/dev/mmcblk0p2 console=tty0 console=ttyUSB0,115200 force_keyboard_port=4 video=gcnfb:tv=auto loader=mini nobats rootwait       
+```
+
+To change the arguments, just pass them as second parameter to `baedit`:
+```
+$ baedit zImage 'your new arguments here'
+>OK: 3201336 bytes read
+current  bootargs = 'root=/dev/mmcblk0p2 console=tty0 console=ttyUSB0,115200 force_keyboard_port=4 video=gcnfb:tv=auto loader=mini nobats rootwait       
+replaced bootargs = 'your new arguments here                                                                                                                              '
+>OK: 3201336 bytes written
+```
+
+# Connecting to Wi-Fi
+
+The `whiite-ez-wifi-config` script is included in `/root` to easily connect to a Wi-Fi network.
+
+# Swap
+
+It is suggested to create a swap partition and enable it to speed up operations, since the Wii has little memory available (~80M).
+
+# Installing packages
+
+The Jessie rootfs is stripped down so you will need to run `apt-get update` before being able to install any package.
+
 # Building the kernel
 
 Compiling this kernel will has some dependencies that must be installed.
@@ -86,11 +118,7 @@ Related pages:
 
 ## ZRAM
 
-Related readings:
-* how to start zRam: http://forums.debian.net/viewtopic.php?t=77627  
-* http://gionn.net/2012/03/11/zram-on-debian-ubuntu-for-memory-overcommitment/
-
-It is usually easier to install the zram-config package in an Ubuntu-based distribution or add the script manually in Debian
+The zram-config v0.5 files are provided in `/root/zram-config`, there is no init integration though.
 
 You can verify whether zRam ha started by running the following command as root:
 
@@ -101,6 +129,10 @@ zRam swapping can be turned off with the following command:
 	swapoff /dev/zram0
         
 Change the command accordingly to which device should be stopped.
+
+Related readings:
+* how to start zRam: http://forums.debian.net/viewtopic.php?t=77627  
+* http://gionn.net/2012/03/11/zram-on-debian-ubuntu-for-memory-overcommitment/
 
 ## Mounting a disc
 
