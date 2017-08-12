@@ -8,6 +8,8 @@ Feel free to open Issues/Pull requests for improvement/discussion purposes.
 
 ## How it works
 
+### Wii
+
 wii-linux-ngx works with an SD card (or USB mass storage) with the following layout:
 * first partition, FAT16 with MINI and Bootmii and main/fallback bootloader, provided here as well for ease of use
 * second partition with ext3 Linux rootfs
@@ -27,6 +29,14 @@ Summary:
 * if you wish to boot directly into Linux kernel, put your kernel in `/bootmii/zImage`
 
 This customized mini is available at: https://github.com/neagix/mini
+
+### GameCube
+
+Currently not tested on GameCube.
+
+## Default credentials
+
+The SD image and rootfs have `root:root` credentials; `ttyUSB0` is enabled as serial console and login terminal, but only the PL2303 driver is included in the kernel.
 
 ## History
 
