@@ -65,7 +65,6 @@ A few of the dropped features (easy to re-add through cherry-pick):
 ## Known issues
 
 Due to significant changes since the last official kernel patch release gcLinux, the 2.6.32 (MIKEp5) patch, the v3.x tree currently has some limitations and bugs that still require attention.
-* In MINI mode, older (smaller than 2GB) cards don't all work correctly  
 * In IOS mode, external swap partitions don't mount correctly as of kernel version 2.6.39. As a workaround, use a local swapfile (This bug should be relatively easy to find using git bisect)
 * Both IOS and MINI modes seem to have a bug that prevents Linux from booting if a GameCube Controller is inserted in one of the ports while the serial port is enabled in the config.  This bug is caused by a glitch that was created when forward porting from 2.6.32 to 2.6.33.  It should be possible to find this bug using git bisect.
 * Only Cube Xorg or Farter's Framebuffer can be used, not both at the same time.
