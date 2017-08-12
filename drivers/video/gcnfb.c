@@ -1609,16 +1609,6 @@ static struct i2c_driver vi_ave_driver = {
  *
  */
 
-/*
- * This is just a quick, dirty and cheap way of getting right colors on the
- * linux framebuffer console.
-
-unsigned int vifb_writel(unsigned int rgbrgb, void *address)
-{
-	uint16_t *rgb = (uint16_t *)&rgbrgb;
-	return fb_writel_real(rgbrgb16toycbycr(rgb[0], rgb[1]), address);
-}
- */
 static int vifb_setcolreg(unsigned regno, unsigned red, unsigned green,
 			   unsigned blue, unsigned transp, struct fb_info *info)
 {
