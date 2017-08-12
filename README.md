@@ -19,13 +19,13 @@ You can add other partitions at your choice; performance of SD cards is better t
 You can use Priiloader to make Bootmii your default choice, effectively creating this chain:
 
 ```
-Wii power on -> MINI -> (Bootmii ->) Linux kernel zImage
+Wii power on -> MINI -> (Bootmii selection with power/eject buttons ->) Linux kernel zImage
 ```
 
 The BootMii step is optional, but there is currently [an open bug that prevents video from correctly working](https://github.com/neagix/wii-linux-ngx/issues/2) (please report if it works for you instead).
 Summary:
 
-* if you wish to boot into Bootmii GUI, make sure `/bootmii/zImage` is renamed to something else like `zImage.dis` (default)
+* if you wish to boot into Bootmii GUI, make sure `/bootmii/zImage` is renamed to something else like `zImage.ngx` (default)
 * if you wish to boot directly into Linux kernel, put your kernel in `/bootmii/zImage`
 
 This customized mini is available at: https://github.com/neagix/mini
@@ -58,13 +58,21 @@ A few branches are currently maintained:
 * [stable-v3.x-w-extras](https://github.com/neagix/linux/tree/stable-v3.x-w-extras), features added by DeltaRes but not in stable-v3.x can be found in this branch.
 
 A few of the dropped features (easy to re-add through cherry-pick):
-* Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/)
 * Nold360's GameCube SDHC support (http://www.gc-forever.com/forums/portal.php)  
     - (https://github.com/Nold360/GC-Linux-Kernel-2.6.32/commits/master)<br>  
 
+Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/) is not included because of [this issue](https://github.com/neagix/wii-linux-ngx/issues/4), if you can help please comment there or open a PR!
+
+Experimental branches:
+* broken-v4.x (v4.12.5) seems to panic regardless of SDHC enabled or not; probably due to the DMA coherency changes
+
 ## Known issues
 
-Due to significant changes since the last official kernel patch release gcLinux, the 2.6.32 (MIKEp5) patch, the v3.x tree currently has some limitations and bugs that still require attention.
+Combinations not tested:
+* GameCube
+* Boot from IOS
+
+Bugs probably introduced in the port of MIKEp5 from v2.6 to v3.x tree:
 * In IOS mode, external swap partitions don't mount correctly as of kernel version 2.6.39. As a workaround, use a local swapfile (This bug should be relatively easy to find using git bisect)
 * Both IOS and MINI modes seem to have a bug that prevents Linux from booting if a GameCube Controller is inserted in one of the ports while the serial port is enabled in the config.  This bug is caused by a glitch that was created when forward porting from 2.6.32 to 2.6.33.  It should be possible to find this bug using git bisect.
 * Only Cube Xorg or Farter's Framebuffer can be used, not both at the same time.
