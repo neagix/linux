@@ -1,5 +1,7 @@
 # wii-linux-ngx
 
+![Tux + Wii]({{ site.url }}/wii-linux-ngx/tux-wii.png)
+
 Running modern Linux on Wii consoles.
 
 This project provides:
