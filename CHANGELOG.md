@@ -1,3 +1,7 @@
+v0.3.1 neagix
+	* added Farter's patch
+	* aesthetical fix to first boot initialization
+
 v0.3.0 neagix
 	* fixed INIT error on ttyS0
 	* kernel v3.14.19
