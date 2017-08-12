@@ -67,11 +67,9 @@ A few branches are currently maintained:
 * [rebased-deltares-v3.x](https://github.com/neagix/linux/tree/rebased-deltares-v3.x), original v3.12.11 by DeltaResero rebased for easier merges + v3.12.12 merge
 * [stable-v3.x-w-extras](https://github.com/neagix/linux/tree/stable-v3.x-w-extras), features added by DeltaRes but not in stable-v3.x can be found in this branch.
 
-A few of the dropped features (easy to re-add through cherry-pick):
+Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/) is included in stable-v3.x. Some of the dropped features (easy to re-add through cherry-pick) are:
 * Nold360's GameCube SDHC support (http://www.gc-forever.com/forums/portal.php)  
     - (https://github.com/Nold360/GC-Linux-Kernel-2.6.32/commits/master)<br>  
-
-Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/) is not included because of [this issue](https://github.com/neagix/wii-linux-ngx/issues/4), if you can help please comment there or open a PR!
 
 Experimental branches:
 * broken-v4.x (v4.12.5) seems to panic regardless of SDHC enabled or not; probably due to the DMA coherency changes
