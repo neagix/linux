@@ -550,7 +550,7 @@ static unsigned int fb_size;
  */
 
 #ifdef CONFIG_WII_AVE_RVL
-static int vi_ave_setup(struct vi_ctl *ctl);
+static void vi_ave_setup(struct vi_ctl *ctl);
 static int vi_ave_get_video_format(struct vi_ctl *ctl,
 				   enum vi_video_format *fmt);
 #endif
@@ -1087,7 +1087,7 @@ static void vi_detect_tv_mode(struct vi_ctl *ctl)
 /*
  * Initialize the video hardware for a given TV mode.
  */
-static int vi_setup_tv_mode(struct vi_ctl *ctl)
+static void vi_setup_tv_mode(struct vi_ctl *ctl)
 {
 	void __iomem *io_base = ctl->io_base;
 	struct vi_mode_timings *timings = &ctl->timings;
@@ -1180,8 +1180,6 @@ static int vi_setup_tv_mode(struct vi_ctl *ctl)
 #ifdef CONFIG_WII_AVE_RVL
 	vi_ave_setup(ctl);
 #endif
-
-	return 0;
 }
 
 /*
@@ -1463,7 +1461,7 @@ static u8 vi_ave_gamma[] = {
 /*
  * Initialize the audio/video encoder.
  */
-static int vi_ave_setup(struct vi_ctl *ctl)
+static void vi_ave_setup(struct vi_ctl *ctl)
 {
 	struct i2c_client *client;
 	u8 macrovision[26];
@@ -1518,8 +1516,6 @@ static int vi_ave_setup(struct vi_ctl *ctl)
 	/* PAL 480i/60 supposedly needs a "filter" */
 	pal60 = !!(format == 2 && ctl->mode->lines == 525);
 	vi_ave_out8(client, 0x6e, pal60);
-
-	return 0;
 }
 
 static struct vi_ctl *first_vi_ctl;
@@ -1866,6 +1862,7 @@ static int vifb_set_par(struct fb_info *info)
 	return 0;
 }
 
+/* unused */
 static int vifb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
 	unsigned long off;
@@ -2048,7 +2045,7 @@ static int vifb_do_probe(struct device *dev,
 			size -= PAGE_SIZE;
 		}
 		drv_printk(KERN_INFO,
-			   "virtual framebuffer at 0x%p, size %dk\n",
+			   "virtual framebuffer at 0x%p, size %ldk\n",
 			   vfb_mem, PAGE_ALIGN(xfb_size) / 1024);
 	}
 
