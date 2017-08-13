@@ -35,14 +35,16 @@
 #ifdef CONFIG_WII_AVE_RVL
 #include <linux/i2c.h>
 #endif
+#include <linux/videodev2.h>
 
 #define DRV_MODULE_NAME   "gcn-vifb"
 #define DRV_DESCRIPTION   "Nintendo GameCube/Wii Video Interface (VI) driver"
 #define DRV_AUTHOR        "Michael Steil <mist@c64.org>, " \
 			  "Todd Jeffreys <todd@voidpointer.org>, " \
-			  "Albert Herranz"
+			  "Albert Herranz, " \
+			  "neagix"
 
-static char vifb_driver_version[] = "2.1i";
+static char vifb_driver_version[] = "2.2";
 
 #define drv_printk(level, format, arg...) \
 	 printk(level DRV_MODULE_NAME ": " format , ## arg)
@@ -254,6 +256,8 @@ enum vi_tv_mode_flags {
 #define VI_HORZ_ALIGN		0xf	/* in pixels-1 */
 #define VI_HORZ_WORD_SIZE	32	/* bytes */
 
+#define TV_BYTES_PER_PIXEL 2 /* all supported TV modes are native YUYV */
+#define PIX_FMT_RGB888		V4L2_PIX_FMT_RGB32 /* only 3 components are being used */
 
 /*
  * Video mode timings.
@@ -510,6 +514,7 @@ static struct fb_fix_screeninfo vifb_fix = {
 	.type = FB_TYPE_PACKED_PIXELS,
 	.visual = FB_VISUAL_TRUECOLOR,	/* lies, lies, lies, ... */
 	.accel = FB_ACCEL_NONE,
+	.capabilities = FB_CAP_FOURCC,
 };
 
 static struct fb_var_screeninfo vifb_var = {
@@ -536,13 +541,23 @@ static int force_tv;
 static u32 pseudo_palette[17];
 
 /*
- * fb_start: addr of the physical fb
- * fb_mem:   virt (mapped) addr of physical fb
- * fb_size:  size of physical fb
+ * Explanation of all the buffering going on here:
+ * 
+ * 0 - this is the hardware, Hollywood/Flipper GPU, it shares memory with CPU as instructed via ioctls and renders what finds there
+ * 1 - gx_fb_start: this is the physical memory address (a.k.a. xfb-start) for the video card
+ * 2 - fb_mem: this is the iomapped virtual address for the physical address, same size as physical memory used by video card
+ *     a.k.a. "physical framebuffer", concealed from use except in native YUYV mode
+ * 3 - info->fix.smem_start: this is the virtual framebuffer, VM'allocated, with format specified by 'vfb_format'
+ * 4 - userland has its own memory buffers and can mmap into previous virtual framebuffer,
+ *     or otherwise write there via file/memory operations.
+ * 
+ * gx_fb_size:  size of the physical framebuffer
+ * vfb_format: either RGB888, YUYV or RGB565
  */
-static unsigned long fb_start;
+static unsigned long gx_fb_start;
 static void *fb_mem;
-static unsigned int fb_size;
+static unsigned int gx_fb_size;
+static int vfb_format;
 
 /*
  *
@@ -554,12 +569,6 @@ static void vi_ave_setup(struct vi_ctl *ctl);
 static int vi_ave_get_video_format(struct vi_ctl *ctl,
 				   enum vi_video_format *fmt);
 #endif
-
-/* some glue to the gx side */
-static inline void gcngx_dispatch_vtrace(struct vi_ctl *ctl)
-{
-}
-
 
 /*
  *
@@ -652,6 +661,65 @@ static inline uint32_t rgbrgb16toycbycr(uint32_t rgb1rgb2)
 	    (((uint8_t) Y2) << 8) | (((uint8_t) Cr) << 0);
 }
 
+
+/*
+ * Converts two 32bpp rgb pixel into a dual YUYV pixel.
+ */
+static inline uint32_t rgb32rgb32toycbycr(uint32_t rgb1, uint32_t rgb2)
+{
+	register int Y1, Cb, Y2, Cr;
+	register int r1, g1, b1;
+	register int r2, g2, b2;
+	register int r, g, b;
+
+	/* fast path, thanks to bohdy */
+	if (!(rgb1 | rgb2))
+		return 0x00800080;	/* black, black */
+
+	/* RGB888 */
+	r1 = ((rgb1 >> 16) & 0xff);
+	g1 = ((rgb1 >> 8) & 0xff);
+	b1 = ((rgb1 >> 0) & 0xff);
+
+	/* fast (approximated) scaling to 8 bits, thanks to Masken */
+	r1 = (r1 << 3) | (r1 >> 2);
+	g1 = (g1 << 2) | (g1 >> 4);
+	b1 = (b1 << 3) | (b1 >> 2);
+
+	Y1 = clamp(((Yr * r1 + Yg * g1 + Yb * b1) >> RGB2YUV_SHIFT)
+		   + RGB2YUV_LUMA, 16, 235);
+	if (rgb1 == rgb2) {
+		/* this is just another fast path */
+		Y2 = Y1;
+		r = r1;
+		g = g1;
+		b = b1;
+	} else {
+		/* same as we did for r1 before */
+		r2 = ((rgb2 >> 16) & 0xff);
+		g2 = ((rgb2 >> 8) & 0xff);
+		b2 = ((rgb2 >> 0) & 0xff);
+		r2 = (r2 << 3) | (r2 >> 2);
+		g2 = (g2 << 2) | (g2 >> 4);
+		b2 = (b2 << 3) | (b2 >> 2);
+
+		Y2 = clamp(((Yr * r2 + Yg * g2 + Yb * b2) >> RGB2YUV_SHIFT)
+			   + RGB2YUV_LUMA,
+			   16, 235);
+
+		r = (r1 + r2) / 2;
+		g = (g1 + g2) / 2;
+		b = (b1 + b2) / 2;
+	}
+
+	Cb = clamp(((Ur * r + Ug * g + Ub * b) >> RGB2YUV_SHIFT)
+		   + RGB2YUV_CHROMA, 16, 240);
+	Cr = clamp(((Vr * r + Vg * g + Vb * b) >> RGB2YUV_SHIFT)
+		   + RGB2YUV_CHROMA, 16, 240);
+
+	return (((uint8_t) Y1) << 24) | (((uint8_t) Cb) << 16) |
+	    (((uint8_t) Y2) << 8) | (((uint8_t) Cr) << 0);
+}
 
 /*
  * Video mode timings calculation.
@@ -834,7 +902,7 @@ static int vi_pal_625_calc_timings(struct vi_mode_timings *timings,
 	error = vi_calc_horz_timings(timings, var, width, max_active_width,
 				     A, B, C, D, f, g);
 	if (error)
-		goto err_out;
+		return error;
 
 	/* standard vertical settings for 574 active lines */
 	max_active_height = 574;	/* 2 * 287.5 = 575 (*1) */
@@ -849,7 +917,7 @@ static int vi_pal_625_calc_timings(struct vi_mode_timings *timings,
 	error = vi_calc_vert_timings(timings, var, height, max_active_height,
 				     P, Q, equ);
 	if (error)
-		goto err_out;
+		return error;
 
 	/*
 	 * Location of the 9 lines of burst blanking for each field
@@ -880,8 +948,7 @@ static int vi_pal_625_calc_timings(struct vi_mode_timings *timings,
 	/* from mid of line 313, field 4 to end of line 622, field 4 */
 	timings->be4 = (2 * (622-313 + 1)) - 1;
 
-err_out:
-	return error;
+	return 0;
 }
 
 static int vi_ntsc_525_calc_timings(struct vi_mode_timings *timings,
@@ -892,11 +959,11 @@ static int vi_ntsc_525_calc_timings(struct vi_mode_timings *timings,
 
 	error = vi_ntsc_525_calc_horz_timings(timings, var, width);
 	if (error)
-		goto err_out;
+		return error;
 
 	error = vi_ntsc_525_calc_vert_timings(timings, var, height);
 	if (error)
-		goto err_out;
+		return error;
 
 	/*
 	 * Location of the 9 lines of burst blanking for each field
@@ -927,8 +994,7 @@ static int vi_ntsc_525_calc_timings(struct vi_mode_timings *timings,
 	/* from mid of line 266, field 4 to end of line 525, field 4 */
 	timings->be4 = (2 * (525-266 + 1)) - 1;
 
-err_out:
-	return error;
+	return 0;
 }
 
 static int vi_ntsc_525_prog_calc_timings(struct vi_mode_timings *timings,
@@ -940,11 +1006,11 @@ static int vi_ntsc_525_prog_calc_timings(struct vi_mode_timings *timings,
 
 	error = vi_ntsc_525_calc_horz_timings(timings, var, width);
 	if (error)
-		goto err_out;
+		return error;
 
 	error = vi_ntsc_525_calc_vert_timings(timings, var, height);
 	if (error)
-		goto err_out;
+		return error;
 
 	/*
 	 * Location of the 18 lines of burst blanking
@@ -965,11 +1031,8 @@ static int vi_ntsc_525_prog_calc_timings(struct vi_mode_timings *timings,
 	timings->be1 = 2 * (525-7 + 1);
 	timings->be2 = timings->be3 = timings->be4 = timings->be1;
 
-err_out:
-	return error;
+	return 0;
 }
-
-
 
 /*
  * Video hardware support.
@@ -1092,7 +1155,6 @@ static void vi_setup_tv_mode(struct vi_ctl *ctl)
 	void __iomem *io_base = ctl->io_base;
 	struct vi_mode_timings *timings = &ctl->timings;
 	struct fb_var_screeninfo *var = &ctl->info->var;
-	unsigned int bytes_per_pixel = var->bits_per_pixel / 8;
 	struct vi_tv_mode *mode;
 	int has_component_cable;
 	u16 std, ppl;
@@ -1139,14 +1201,14 @@ static void vi_setup_tv_mode(struct vi_ctl *ctl)
 	out_be32(io_base + VI_TFBR, 0);
 	out_be32(io_base + VI_BFBR, 0);
 
-	std = (var->xres_virtual * bytes_per_pixel) / VI_HORZ_WORD_SIZE;
+	std = (var->xres_virtual * TV_BYTES_PER_PIXEL) / VI_HORZ_WORD_SIZE;
 	if (!(mode->flags & VI_VMF_PROGRESSIVE))
 		std *= 2;
 	ppl = _ALIGN_UP((var->xoffset & VI_HORZ_ALIGN) + var->xres,
 			VI_HORZ_ALIGN+1);
 	out_be16(io_base + VI_PCR,
 		 vi_pcr_std(std) |
-		 vi_pcr_wpl((ppl * bytes_per_pixel) / VI_HORZ_WORD_SIZE));
+		 vi_pcr_wpl((ppl * TV_BYTES_PER_PIXEL) / VI_HORZ_WORD_SIZE));
 
 	/* scaler is disabled */
 	out_be16(io_base + VI_HSR, vi_hsr_stp(256) | vi_hsr_hs_en(0));
@@ -1178,8 +1240,15 @@ static void vi_setup_tv_mode(struct vi_ctl *ctl)
 	out_be32(io_base + VI_UNK3, 0x00ff00ff);
 
 #ifdef CONFIG_WII_AVE_RVL
-	vi_ave_setup(ctl);
+	if (ctl->i2c_client)
+		vi_ave_setup(ctl);
 #endif
+}
+
+static int vifb_adjust_ll(int ll) {
+	if (vfb_format == PIX_FMT_RGB888)
+		return ll/2;
+	return ll;
 }
 
 /*
@@ -1191,13 +1260,14 @@ void vi_set_framebuffer(struct vi_ctl *ctl, u32 addr)
 	void __iomem *io_base = ctl->io_base;
 	u32 top, bot;
 	u8 xof;
+	int gx_ll = vifb_adjust_ll(info->fix.line_length);
 
 	top = bot = addr;
 	if (!vi_vmode_is_progressive(info->var.vmode)) {
 		if (ctl->timings.ypos & 0x01)
-			top += info->fix.line_length;
+			top += gx_ll;
 		else
-			bot += info->fix.line_length;
+			bot += gx_ll;
 	}
 	xof = (top / 2) & VI_HORZ_ALIGN;
 
@@ -1250,28 +1320,69 @@ static void vi_dispatch_vtrace(struct vi_ctl *ctl)
 {
 	unsigned long flags;
 
-	/* Copy and convert contents of virtual framebuffer */
+	/* Copy and convert contents of virtual framebuffer,
+	 * uses a secondary buffer to check data which needs to be copied */
 	struct fb_info *info = ctl->info;
 	unsigned int width = info->fix.line_length >> 2;
 	unsigned int height = info->var.yres;
-	uint32_t *addr0 = (uint32_t *)info->screen_base;
-	uint32_t *addr1 = fb_mem;
-	uint32_t *addr2 = addr0 + width * height;
-
-	while (height--) {
-		int j = width;
-		while (j--) {
-			uint32_t k = *(addr0 + j);
-			if ( k != *(addr2 + j)) {
-				*(addr2 + j) = k;
-				*(addr1 + j) = rgbrgb16toycbycr(k);
+	/* address of the virtual framebuffer */
+	uint32_t *addr0;
+	/* address of backup copy of the virtual framebuffer */
+	uint32_t *addr2;
+	/* address of the memory-mapped physical framebuffer */
+	uint32_t *addr1;
+	
+	addr0 = (uint32_t *)info->screen_base;
+	addr1 = fb_mem;
+	addr2 = addr0 + width * height;
+	
+	switch (vfb_format) {
+		case PIX_FMT_RGB888:
+			/* (RGB32, RGB32) to YUYV */
+			while (height--) {
+				/* in this mode width relative to the physical framebuffer is doubled */
+				int j = width;
+				while (j-=2) {
+					uint32_t k1 = *(addr0 + j);
+					uint32_t k2 = *(addr0 + j + 1);
+					
+					/* did the vfb pixels change? */
+					if ( (k1 != *(addr2 + j)) || (k2 != *(addr2 + j + 1))) {
+						*(addr2 + j) = k1;
+						*(addr2 + j + 1) = k2;
+						*(addr1 + j / 2) = rgb32rgb32toycbycr(k1, k2);
+					}
+				}
+				addr0 += width;
+				addr1 += width / 2;
+				addr2 += width;
 			}
-		}
-		addr0 += width;
-		addr1 += width;
-		addr2 += width;
+			break;
+		case V4L2_PIX_FMT_YUYV:
+			/* no transcoding in this mode */
+			BUG();
+			return;
+		case V4L2_PIX_FMT_RGB565:
+			/* RGB565 -> YUYV */
+			while (height--) {
+				int j = width;
+				while (j--) {
+					uint32_t k = *(addr0 + j);
+					if ( k != *(addr2 + j)) {
+						*(addr2 + j) = k;
+						*(addr1 + j) = rgbrgb16toycbycr(k);
+					}
+				}
+				addr0 += width;
+				addr1 += width;
+				addr2 += width;
+			}
+			break;
+		default:
+			BUG();
+			return;
 	}
-
+	
 	spin_lock_irqsave(&ctl->lock, flags);
 	if (ctl->flip_pending)
 		vi_flip_page(ctl);
@@ -1291,7 +1402,6 @@ static irqreturn_t vi_irq_handler(int irq, void *dev)
 	val = in_be32(io_base + VI_DI0);
 	if (vi_dix_get_irq(val)) {
 		ctl->in_vtrace = 0;
-		gcngx_dispatch_vtrace(ctl); /* backwards compatibility */
 
 		out_be32(io_base + VI_DI0, vi_dix_clear_irq(val));
 		return IRQ_HANDLED;
@@ -1300,7 +1410,6 @@ static irqreturn_t vi_irq_handler(int irq, void *dev)
 	if (vi_dix_get_irq(val)) {
 		ctl->in_vtrace = 1;
 		vi_dispatch_vtrace(ctl);
-		gcngx_dispatch_vtrace(ctl); /* backwards compatibility */
 
 		out_be32(io_base + VI_DI1, vi_dix_clear_irq(val));
 		return IRQ_HANDLED;
@@ -1431,22 +1540,22 @@ static int vi_ave_in8(struct i2c_client *client, u8 reg, u8 *data)
 static int vi_ave_get_video_format(struct vi_ctl *ctl,
 				   enum vi_video_format *fmt)
 {
+	int error;
 	u8 val = 0xff;
-	int error = -ENODEV;
 
 	if (!ctl->i2c_client)
-		goto err_out;
+		return -ENODEV;
 
 	error = vi_ave_in8(ctl->i2c_client, 0x01, &val);
 	if (error)
-		goto err_out;
+		return -ENODEV;
 
 	if ((val & 0x1f) == 2)
 		*fmt = VI_FMT_PAL;
 	else
 		*fmt = VI_FMT_NTSC;
-err_out:
-	return error;
+
+	return 0;
 }
 
 
@@ -1466,9 +1575,6 @@ static void vi_ave_setup(struct vi_ctl *ctl)
 	struct i2c_client *client;
 	u8 macrovision[26];
 	u8 component, format, pal60;
-
-	if (!ctl->i2c_client)
-		return -ENODEV;
 
 	client = ctl->i2c_client;
 	memset(macrovision, 0, sizeof(macrovision));
@@ -1561,7 +1667,7 @@ static void vi_dettach_ave(struct vi_ctl *ctl)
 static int vi_ave_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id)
 {
-	int error;
+	int error = 0;
 
 	/* attach first a/v encoder to first framebuffer */
 	if (!first_vi_ave) {
@@ -1573,7 +1679,7 @@ static int vi_ave_probe(struct i2c_client *client,
 			vi_setup_tv_mode(first_vi_ctl);
 		}
 	}
-	return 0;
+	return error;
 }
 
 static int vi_ave_remove(struct i2c_client *client)
@@ -1641,39 +1747,6 @@ static int vifb_setcolreg(unsigned regno, unsigned red, unsigned green,
 	return 0;
 }
 
-/*
- * Pan the display by altering the framebuffer address in hardware.
- */
-static int vifb_pan_display(struct fb_var_screeninfo *var,
-			     struct fb_info *info)
-{
-	struct vi_ctl *ctl = info->par;
-	void __iomem *io_base = ctl->io_base;
-	unsigned int bytes_per_pixel = info->var.bits_per_pixel / 8;
-	unsigned long flags;
-	int offset;
-	u16 ppl;
-
-	ppl = _ALIGN_UP((var->xoffset & VI_HORZ_ALIGN) + var->xres,
-			VI_HORZ_ALIGN+1);
-	out_be16(io_base + VI_PCR,
-		 vi_pcr_set_wpl(in_be16(io_base + VI_PCR),
-				(ppl * bytes_per_pixel) / VI_HORZ_WORD_SIZE));
-
-	offset = (var->yoffset * info->fix.line_length) +
-		 var->xoffset * bytes_per_pixel;
-	vi_set_framebuffer(ctl, info->fix.smem_start + offset);
-
-	spin_lock_irqsave(&ctl->lock, flags);
-	if (info->fix.smem_start + offset >= ctl->page_address[1])
-		ctl->visible_page = 1;
-	else
-		ctl->visible_page = 0;
-	spin_unlock_irqrestore(&ctl->lock, flags);
-
-	return 0;
-}
-
 static int vifb_check_var_timings(struct fb_var_screeninfo *var,
 				  struct fb_info *info)
 {
@@ -1713,6 +1786,12 @@ err_out:
 	return error;
 }
 
+static int vifb_format_is_fourcc(const struct fb_var_screeninfo *var)
+{
+	return var->grayscale > 1;
+}
+
+
 /*
  * Check var and eventually tweak it to something supported.
  * Do not modify par here.
@@ -1725,12 +1804,54 @@ static int vifb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	unsigned int bytes_per_pixel;
 	__u32 xres, yres, xres_virtual, yres_virtual;
 
-	/* we support only 16bpp */
-	if (var->bits_per_pixel != 16) {
-		drv_printk(KERN_ERR, "unsupported depth %u\n",
-				var->bits_per_pixel);
-		goto err_out;
+	/* no custom viewports, sorry */
+	if ((var->xoffset != 0) ||
+		(var->yoffset != 0)) {
+		drv_printk(KERN_ERR, "Non-zero x/y offsets are not supported\n");
+		return -EINVAL;
 	}
+	
+	if (vifb_format_is_fourcc(var)) {
+		/* only the native YUYV format is supported */
+		if (var->grayscale != V4L2_PIX_FMT_YUYV) {
+			return -EINVAL;
+		}
+		
+		/* YUYV a.k.a. YUY2 */
+		var->bits_per_pixel = 16;
+		var->colorspace = V4L2_PIX_FMT_YUYV; /* only for FOURCC-based modes */
+		var->nonstd = V4L2_PIX_FMT_YUYV;
+	} else {
+		var->nonstd = 0;
+
+		/* emulated RGB colorspaces */
+		if (var->bits_per_pixel == 16) {			/* RGB565 */
+			var->red.offset = 11;
+			var->red.length = 5;
+			var->green.offset = 5;
+			var->green.length = 6;
+			var->blue.offset = 0;
+			var->blue.length = 5;
+			var->transp.offset = 0;
+			var->transp.length = 0;
+		} else if (var->bits_per_pixel == 32) {		/* RGB888 */
+			var->red.offset = 16;
+			var->red.length = 8;
+			var->green.offset = 8;
+			var->green.length = 8;
+			var->blue.offset = 0;
+			var->blue.length = 8;
+			/* transparency is effectively ignored */
+			var->transp.offset = 24;
+			var->transp.length = 8;
+		} else {
+			drv_printk(KERN_ERR, "unsupported depth %u\n",
+					var->bits_per_pixel);
+			return -EINVAL;
+		}
+	}
+
+	var->grayscale = 0;
 
 	yres = var->yres;
 	if (yres & VI_VERT_ALIGN)
@@ -1738,14 +1859,14 @@ static int vifb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	if (yres > mode->height) {
 		if (!nostalgic) {
 			drv_printk(KERN_ERR, "yres %u out of bounds\n", yres);
-			goto err_out;
+			return -EINVAL;
 		}
 		if (!(mode->height == 574 && yres == 576))
 			yres = mode->height;
 	}
 	if (yres < 16) {
-		/* XXX, fbcon will happily page fault for yres < 13 */
-		yres = 16;
+		drv_printk(KERN_ERR, "yres %u < 16 is too small\n", yres);
+		return -EINVAL;
 	}
 	if (!yres)
 		yres = mode->height;
@@ -1759,7 +1880,7 @@ static int vifb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 		xres = _ALIGN_UP(xres, VI_HORZ_ALIGN+1);
 	if (xres > mode->width) {
 		drv_printk(KERN_ERR, "xres %u out of bounds\n", var->xres);
-		goto err_out;
+		return -EINVAL;
 	}
 	if (!xres)
 		xres = mode->width;
@@ -1777,30 +1898,13 @@ static int vifb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 			   " (%ux%ux%u)\n",
 			   xres_virtual, yres_virtual,
 			   var->bits_per_pixel);
-		goto err_out;
+		return -EINVAL;
 	}
 
 	var->xres = xres;
 	var->yres = yres;
 	var->xres_virtual = xres_virtual;
 	var->yres_virtual = yres_virtual;
-
-	var->xoffset = 0;
-	var->yoffset = 0;
-
-	var->grayscale = 0;
-
-	/* we support ony 16 bits per pixel */
-	var->red.offset = 11;
-	var->red.length = 5;
-	var->green.offset = 5;
-	var->green.length = 6;
-	var->blue.offset = 0;
-	var->blue.length = 5;
-	var->transp.offset = 0;
-	var->transp.length = 0;
-
-	var->nonstd = 0;	/* lies... */
 
 	/* enable non-interlaced mode if supported */
 	if (force_scan != VI_SCAN_INTERLACED && ctl->has_component_cable) {
@@ -1812,10 +1916,9 @@ static int vifb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 
 	error = vifb_check_var_timings(var, info);
 	if (error)
-		goto err_out;
+		return error;
 
-err_out:
-	return error;
+	return 0;
 }
 
 /*
@@ -1826,17 +1929,46 @@ static int vifb_set_par(struct fb_info *info)
 	struct vi_ctl *ctl = info->par;
 	struct fb_var_screeninfo *var = &info->var;
 	unsigned long flags;
+	int gx_ll;
 
-	/* horizontal line in bytes */
+	/* horizontal line in bytes, refers to virtual framebuffer */
 	info->fix.line_length = var->xres_virtual * (var->bits_per_pixel / 8);
 
-	/* info->smem_* refer to vfb, here we wanna store physical fb info */
-	ctl->page_address[0] = fb_start;
-	if (var->yres * info->fix.line_length <= fb_size / 2)
+	if (vifb_format_is_fourcc(var)) {
+		vfb_format = var->nonstd;
+		if (vfb_format != V4L2_PIX_FMT_YUYV) {
+			BUG();
+			return -EINVAL;
+		}
+		info->fix.visual = FB_VISUAL_FOURCC;
+	} else {
+		/* Set internal vfb format and define desired framebuffer size;
+		 * it can either be same size of video card physical framebuffer,
+		 * or double size for RGB888 */
+		if (info->var.bits_per_pixel == 16) {
+			vfb_format = V4L2_PIX_FMT_RGB565;
+		} else if (info->var.bits_per_pixel == 32) {
+			vfb_format = PIX_FMT_RGB888;
+		} else {
+			BUG();
+			return -EINVAL;
+		}
+	}
+
+	/* always clear virtual framebuffer when changing modes */
+	memset((void *)info->fix.smem_start, 0, PAGE_ALIGN(info->fix.smem_len));
+
+	/* info->fix.smem_* refer to the virtual framebuffer, here however
+	 * we want to store physical fb info, namely the
+	 * addresses of the two pages used for flipping
+	 */
+	gx_ll = vifb_adjust_ll(info->fix.line_length);
+	ctl->page_address[0] = gx_fb_start;
+	if (var->yres * gx_ll <= gx_fb_size / 2)
 		ctl->page_address[1] =
-		    fb_start + var->yres * info->fix.line_length;
+		    gx_fb_start + var->yres * gx_ll;
 	else
-		ctl->page_address[1] = fb_start;
+		ctl->page_address[1] = gx_fb_start;
 
 	/* set page 0 as the visible page and cancel pending flips */
 	spin_lock_irqsave(&ctl->lock, flags);
@@ -1859,37 +1991,6 @@ static int vifb_set_par(struct fb_info *info)
 	/* enable the video retrace handling */
 	vi_enable_interrupts(ctl, 1);
 
-	return 0;
-}
-
-/* unused */
-static int vifb_mmap(struct fb_info *info, struct vm_area_struct *vma)
-{
-	unsigned long off;
-	unsigned long start;
-	u32 len;
-
-	off = vma->vm_pgoff << PAGE_SHIFT;
-
-	/* frame buffer memory */
-	start = info->fix.smem_start;
-	len = PAGE_ALIGN((start & ~PAGE_MASK) + info->fix.smem_len);
-	start &= PAGE_MASK;
-	if ((vma->vm_end - vma->vm_start + off) > len)
-		return -EINVAL;
-	off += start;
-	vma->vm_pgoff = off >> PAGE_SHIFT;
-
-	/* this is an IO map, tell maydump to skip this VMA */
-	vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP;
-
-	/* we share RAM between the cpu and the video hardware */
-	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-
-	if (io_remap_pfn_range(vma, vma->vm_start, off >> PAGE_SHIFT,
-				vma->vm_end - vma->vm_start,
-				vma->vm_page_prot))
-		return -EAGAIN;
 	return 0;
 }
 
@@ -2003,6 +2104,8 @@ struct fb_ops vifb_ops = {
  *
  */
 
+static void vifb_cleanup_virtual_fb(struct fb_fix_screeninfo *si);
+
 static int vifb_do_probe(struct device *dev,
 			 struct resource *mem, unsigned int irq,
 			 unsigned long xfb_start, unsigned long xfb_size)
@@ -2011,10 +2114,13 @@ static int vifb_do_probe(struct device *dev,
 	struct vi_ctl *ctl;
 	int video_cmap_len;
 	int error = -EINVAL;
+	int i;
+	unsigned long adr, size;
+	uint32_t *j;
 
 	info = framebuffer_alloc(sizeof(struct vi_ctl), dev);
 	if (!info)
-		goto err_framebuffer_alloc;
+		return -EINVAL;;
 
 	info->fbops = &vifb_ops;
 	info->var = vifb_var;
@@ -2023,38 +2129,45 @@ static int vifb_do_probe(struct device *dev,
 	ctl = info->par;
 	ctl->info = info;
 
-	/* first things first */
+	/* first things first: create I/O mapping between the Hollywood/Flipper video card physical framebuffer and kernel's virtual memory */
 	ctl->io_base = ioremap(mem->start, mem->end - mem->start + 1);
 	ctl->irq = irq;
 
-	void *vfb_mem;
-	unsigned long adr;
-	unsigned long size = PAGE_ALIGN(xfb_size);
-	vfb_mem = vmalloc_32(size);
-	if (!vfb_mem) {
+	/* create a virtual framebuffer, which is used for on-the-fly colorspace conversions 
+	 * always as big as the largest mode supported
+	 */
+	info->fix.smem_len = xfb_size * 2;
+	size = PAGE_ALIGN(info->fix.smem_len);
+	info->fix.smem_start = (unsigned long)vmalloc_32(size);
+	if (!info->fix.smem_start) {
+		info->fix.smem_len = 0; /* just in case */
 		drv_printk(KERN_ERR, "failed to allocate virtual framebuffer\n");
-		error = -ENOMEM;
-		goto err_framebuffer_alloc;
+		return -ENOMEM;
 	}
-        else {
-		memset(vfb_mem, 0, size);
-		adr = (unsigned long)vfb_mem;
-		while (size > 0) {
-			SetPageReserved(vmalloc_to_page((void *)adr));
-			adr += PAGE_SIZE;
-			size -= PAGE_SIZE;
-		}
-		drv_printk(KERN_INFO,
-			   "virtual framebuffer at 0x%p, size %ldk\n",
-			   vfb_mem, PAGE_ALIGN(xfb_size) / 1024);
+	/*
+	 * Now that the virtual framebuffer has been setup,
+	 * store its location and size.
+	 * All software rendering will be redirected to this virtual framebuffer.
+	 * Normally screen_base would be the physical framebuffer, but here we play on-the-fly colorconversion.
+	 */
+	info->screen_base = (char __iomem *)info->fix.smem_start;
+	memset(info->screen_base, 0, size);
+	info->flags = FBINFO_DEFAULT | FBINFO_READS_FAST | FBINFO_VIRTFB /* |	FBINFO_HWACCEL_IMAGEBLIT | FBINFO_HWACCEL_FILLRECT | FBINFO_HWACCEL_COPYAREA */;
+
+	adr = info->fix.smem_start;
+	while (size > 0) {
+		SetPageReserved(vmalloc_to_page((void *)adr));
+		adr += PAGE_SIZE;
+		size -= PAGE_SIZE;
 	}
+	drv_printk(KERN_INFO,
+		   "virtual framebuffer at 0x%p, size %dk\n",
+		   (void *)info->fix.smem_start, PAGE_ALIGN(info->fix.smem_len) / 1024);
 
 	/*
-	 * Location and size of the external framebuffer.
+	 * Map the video card's memory (this is the physical framebuffer)
+	 * into kernel's virtual memory space
 	 */
-	info->fix.smem_start = (unsigned long) vfb_mem;
-	info->fix.smem_len = xfb_size;
-
 	if (!request_mem_region(xfb_start, xfb_size,
 				DRV_MODULE_NAME)) {
 		drv_printk(KERN_WARNING,
@@ -2062,26 +2175,30 @@ static int vifb_do_probe(struct device *dev,
 			   (void *)xfb_start);
 	}
 
-	/* Save the physical fb info */
-	fb_start = xfb_start;
-	fb_size = xfb_size;
-	fb_mem = ioremap(fb_start, fb_size);
+	/* store global variables for the physical framebuffer */
+	gx_fb_start = xfb_start;
+	gx_fb_size = xfb_size;
+	
+	fb_mem = ioremap(xfb_start, xfb_size);
 	if (!fb_mem) {
 		drv_printk(KERN_ERR,
-			   "failed to ioremap video memory at %p (%dk)\n",
-			   (void *)fb_start,
-			   info->fix.smem_len / 1024);
+			   "failed to ioremap video memory at %p (%ldk)\n",
+			   (void *)xfb_start,
+			   xfb_size / 1024);
 		error = -EIO;
 		goto err_ioremap;
 	}
+	drv_printk(KERN_INFO,
+		   "framebuffer at 0x%p mapped to 0x%p, size %ldk\n",
+		   (void *)xfb_start, fb_mem,
+		   xfb_size / 1024);
 
 	/* Clear screen */
-	int i = fb_size >> 2;
-	uint32_t * j = (uint32_t *)fb_mem;
+	i = xfb_size >> 2;
+	j = (uint32_t *)fb_mem;
 	while (i--) {
 		*(j++) = 0x10801080;
 	}
-	info->screen_base = (char __iomem *)vfb_mem;
 
 	spin_lock_init(&ctl->lock);
 	init_waitqueue_head(&ctl->vtrace_waitq);
@@ -2103,12 +2220,7 @@ static int vifb_do_probe(struct device *dev,
 
 	ctl->visible_page = 0;
 	ctl->flip_pending = 0;
-
-	drv_printk(KERN_INFO,
-		   "framebuffer at 0x%p, mapped to 0x%p, size %dk\n",
-		   (void *)info->fix.smem_start, info->screen_base,
-		   info->fix.smem_len / 1024);
-
+	
 	video_cmap_len = 16;
 	info->pseudo_palette = pseudo_palette;
 	if (fb_alloc_cmap(&info->cmap, video_cmap_len, 0)) {
@@ -2120,8 +2232,8 @@ static int vifb_do_probe(struct device *dev,
 	if (error)
 		goto err_check_var;
 
-	drv_printk(KERN_INFO, "mode is %dx%dx%d\n", info->var.xres,
-		   info->var.yres, info->var.bits_per_pixel);
+	drv_printk(KERN_INFO, "mode is %dx%dx%d (FOURCC colorspace = 0x%x)\n", info->var.xres,
+		   info->var.yres, info->var.bits_per_pixel, info->var.colorspace);
 
 	dev_set_drvdata(dev, info);
 
@@ -2160,45 +2272,30 @@ err_request_irq:
 err_alloc_cmap:
 	iounmap(fb_mem);
 err_ioremap:
-	release_mem_region(fb_start, fb_size);
-	adr = info->fix.smem_start;
-	size = PAGE_ALIGN(fb_size);
-	while ((long) size > 0) {
-		ClearPageReserved(vmalloc_to_page((void *)adr));
-		adr += PAGE_SIZE;
-		size -= PAGE_SIZE;
-	}
-	vfree((void *)info->fix.smem_start);
+	/* release the physical framebuffer */
+	vifb_cleanup_virtual_fb(&info->fix);
 
 	dev_set_drvdata(dev, NULL);
 	iounmap(ctl->io_base);
 	framebuffer_release(info);
-err_framebuffer_alloc:
+
 	return error;
 }
 
 static int vifb_do_remove(struct device *dev)
 {
+	struct vi_ctl *ctl;
 	struct fb_info *info = dev_get_drvdata(dev);
-	struct vi_ctl *ctl = info->par;
-
 	if (!info)
 		return -ENODEV;
+	ctl = info->par;
 
 	free_irq(ctl->irq, dev);
 	unregister_framebuffer(info);
 	fb_dealloc_cmap(&info->cmap);
 	iounmap(fb_mem);
-	release_mem_region(fb_start, fb_size);
 
-	unsigned long adr = info->fix.smem_start;
-	unsigned long size = PAGE_ALIGN(fb_size);
-	while ((long) size > 0) {
-		ClearPageReserved(vmalloc_to_page((void *)adr));
-		adr += PAGE_SIZE;
-		size -= PAGE_SIZE;
-	}
-	vfree((void *)info->fix.smem_start);
+	vifb_cleanup_virtual_fb(&info->fix);
 
 	dev_set_drvdata(dev, NULL);
 	iounmap(ctl->io_base);
@@ -2210,6 +2307,24 @@ static int vifb_do_remove(struct device *dev)
 #endif
 	framebuffer_release(info);
 	return 0;
+}
+
+/* clean up reserved pages of the virtual framebuffer */
+static void vifb_cleanup_virtual_fb(struct fb_fix_screeninfo *si) {
+	unsigned long size;
+	unsigned long adr = si->smem_start;
+	
+	/* release memory mapping region */
+	release_mem_region(gx_fb_start, gx_fb_size);
+	
+	/* release the virtual framebuffer's reserved pages */
+	size = PAGE_ALIGN(si->smem_len);
+	while ((long) size > 0) {
+		ClearPageReserved(vmalloc_to_page((void *)adr));
+		adr += PAGE_SIZE;
+		size -= PAGE_SIZE;
+	}
+	vfree((void *)si->smem_start);
 }
 
 static int vifb_do_shutdown(struct device *dev)
