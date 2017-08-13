@@ -1,6 +1,6 @@
 # wii-linux-ngx
 
-![Tux + Wii]({{ site.url }}/wii-linux-ngx/tux-wii.png)
+<a href="https://neagix.github.io/wii-linux-ngx/"><img alt="Tux + Wii" src="wii-linux-ngx-logo.png" width="160" title="wii-linux-ngx" /></a>
 
 Running modern Linux on Wii consoles.
 

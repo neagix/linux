@@ -1,8 +1,6 @@
-# A modern Linux kernel for Wii
+# Modern Linux for Wii/GameCube
 
-![Tux + Wii](docs/tux-wii.png)
-
-https://neagix.github.io/wii-linux-ngx/
+<a href="https://neagix.github.io/wii-linux-ngx/"><img alt="Tux + Wii" src="docs/wii-linux-ngx-logo.png" width="160" title="wii-linux-ngx" /></a>
 
 The [wii-linux-ngx repository](https://github.com/neagix/wii-linux-ngx) contains Linux kernel branches with rebased patches for the purpose of running a modern Linux distribution on the Wii.
 
