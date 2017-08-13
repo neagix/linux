@@ -144,10 +144,9 @@ The Jessie rootfs is stripped down so you will need to run `apt-get update` befo
 Compiling this kernel will has some dependencies that must be installed.
 On a Debian-based system, these dependecies can be installed by running the following command:
 
-    sudo apt-get install advancecomp autoconfig automake bash build-essential bzip2 ccache  coreutils fakeroot file gcc g++ gzip libmpfr-dev libgmp-dev libnurses5-dev make strip
+    sudo apt-get install advancecomp autoconfig automake bash build-essential bzip2 ccache coreutils fakeroot file gcc g++ gzip libmpfr-dev libgmp-dev libnurses5-dev make strip
 
-**TODO:** add here instructions about the new building script
-
+Give a look to DeltaResero's script to see how to use ccache for kernel compilation
 ## (Cross) Compiling the Kernel
 
 Remember to edit the corresponding dts file (`arch/powerpc/boot/wii.dts`  for the Wii when not using the default boot method from SD card (`/dev/mmcblk0p2`).
