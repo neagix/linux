@@ -41,7 +41,7 @@ Yes.
 
 * can I run Xorg on it?
 ```
-No idea, not tested. It should work with the framebuffer driver.
+It works with the framebuffer driver.
 ```
 
 * does it work on GameCube?
@@ -51,7 +51,7 @@ It should. GameCube is supported but author cannot test on it.
 
 * what type of multimedia/gaming applications can I use?
 ```
-Anything that works on a framebuffer will do. Or, if you manage to get X working, Xvideo too :) but forget about video playback, 3D or high end games.
+Anything that works on a framebuffer will do. But forget about video playback, 3D or high end games. There is no hardware acceleration support so far.
 ```
 
 # Thanks
