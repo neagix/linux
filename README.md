@@ -109,9 +109,22 @@ replaced bootargs = 'your new arguments here                                    
 >OK: 3201336 bytes written
 ```
 
+# Connecting via Ethernet dongle
+
+Connection will work automatically and it uses regular Debian configuration files.
+
 # Connecting to Wi-Fi
 
 The `whiite-ez-wifi-config` script is included in `/root` to easily connect to a Wi-Fi network.
+
+**NOTE:** WPA2 is supported by the  only in TKIP mode
+
+## Network troubleshooting resources
+
+* http://www.gc-linux.org/wiki/WL:Wifi_Configuration
+* http://www.linux-tips-and-tricks.de/overview#english
+* http://www.linux-tips-and-tricks.de/downloads/collectnwdata-sh/download
+* http://forum.wiibrew.org/read.php?29,68339,68339
 
 # Swap
 
@@ -175,10 +188,3 @@ Additional packages such as libdvdcss & libdvdread may need to be installed for 
 
 ## Related pages:
 * http://fartersoft.com/blog/2011/08/17/debian-installer-for-wii/
-
-## Old network troubleshooting resources
-
-* http://www.linux-tips-and-tricks.de/overview#english
-* http://www.linux-tips-and-tricks.de/downloads/collectnwdata-sh/download
-* http://www.gc-linux.org/wiki/WL:Wifi_Configuration
-* http://forum.wiibrew.org/read.php?29,68339,68339
