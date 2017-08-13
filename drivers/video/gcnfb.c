@@ -1643,6 +1643,7 @@ static int vifb_setcolreg(unsigned regno, unsigned red, unsigned green,
 	return 0;
 }
 
+#if 0
 /*
  * Pan the display by altering the framebuffer address in hardware.
  */
@@ -1675,6 +1676,7 @@ static int vifb_pan_display(struct fb_var_screeninfo *var,
 
 	return 0;
 }
+#endif
 
 static int vifb_check_var_timings(struct fb_var_screeninfo *var,
 				  struct fb_info *info)
@@ -1864,6 +1866,7 @@ static int vifb_set_par(struct fb_info *info)
 	return 0;
 }
 
+#if 0
 /* unused */
 static int vifb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
@@ -1894,6 +1897,7 @@ static int vifb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 		return -EAGAIN;
 	return 0;
 }
+#endif
 
 static int vfb_mmap(struct fb_info *info,
 		    struct vm_area_struct *vma)
@@ -2013,6 +2017,11 @@ static int vifb_do_probe(struct device *dev,
 	struct vi_ctl *ctl;
 	int video_cmap_len;
 	int error = -EINVAL;
+	int i;
+	void *vfb_mem;
+	unsigned long adr;
+	unsigned long size = PAGE_ALIGN(xfb_size);
+	uint32_t *j;
 
 	info = framebuffer_alloc(sizeof(struct vi_ctl), dev);
 	if (!info)
@@ -2029,9 +2038,7 @@ static int vifb_do_probe(struct device *dev,
 	ctl->io_base = ioremap(mem->start, mem->end - mem->start + 1);
 	ctl->irq = irq;
 
-	void *vfb_mem;
-	unsigned long adr;
-	unsigned long size = PAGE_ALIGN(xfb_size);
+	size = PAGE_ALIGN(xfb_size);
 	vfb_mem = vmalloc_32(size);
 	if (!vfb_mem) {
 		drv_printk(KERN_ERR, "failed to allocate virtual framebuffer\n");
@@ -2078,8 +2085,8 @@ static int vifb_do_probe(struct device *dev,
 	}
 
 	/* Clear screen */
-	int i = fb_size >> 2;
-	uint32_t * j = (uint32_t *)fb_mem;
+	i = fb_size >> 2;
+	j = (uint32_t *)fb_mem;
 	while (i--) {
 		*(j++) = 0x10801080;
 	}
@@ -2183,6 +2190,7 @@ static int vifb_do_remove(struct device *dev)
 {
 	struct fb_info *info = dev_get_drvdata(dev);
 	struct vi_ctl *ctl = info->par;
+	unsigned long adr, size;
 
 	if (!info)
 		return -ENODEV;
@@ -2193,8 +2201,8 @@ static int vifb_do_remove(struct device *dev)
 	iounmap(fb_mem);
 	release_mem_region(fb_start, fb_size);
 
-	unsigned long adr = info->fix.smem_start;
-	unsigned long size = PAGE_ALIGN(fb_size);
+	adr = info->fix.smem_start;
+	size = PAGE_ALIGN(fb_size);
 	while ((long) size > 0) {
 		ClearPageReserved(vmalloc_to_page((void *)adr));
 		adr += PAGE_SIZE;
