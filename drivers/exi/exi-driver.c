@@ -415,7 +415,7 @@ static int exi_bus_thread(void *__unused)
 			}
 		}
 
-		sleep_on_timeout(&exi_bus_waitq, HZ);
+		wait_event_timeout(exi_bus_waitq, kthread_should_stop(), HZ);
 	}
 
 	return 0;
