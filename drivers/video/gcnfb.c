@@ -40,9 +40,10 @@
 #define DRV_DESCRIPTION   "Nintendo GameCube/Wii Video Interface (VI) driver"
 #define DRV_AUTHOR        "Michael Steil <mist@c64.org>, " \
 			  "Todd Jeffreys <todd@voidpointer.org>, " \
-			  "Albert Herranz"
+			  "Albert Herranz, " \
+			  "neagix"
 
-static char vifb_driver_version[] = "2.1i";
+static char vifb_driver_version[] = "2.2";
 
 #define drv_printk(level, format, arg...) \
 	 printk(level DRV_MODULE_NAME ": " format , ## arg)
