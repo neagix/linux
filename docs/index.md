@@ -24,35 +24,20 @@ Pull requests are welcome!
 
 # Frequently Asked Questions
 
-* does the ethernet dongle work?
-```
-Yes.
-```
-
-* does the Wi-Fi work?
-```
-Yes.
-```
-
-* does SD/SDHC/USB work?
-```
-Yes.
-```
-
-* can I run Xorg on it?
-```
-It works with the framebuffer driver.
-```
-
-* does it work on GameCube?
-```
-It should. GameCube is supported but author cannot test on it.
-```
-
-* what type of multimedia/gaming applications can I use?
-```
-Anything that works on a framebuffer will do. But forget about video playback, 3D or high end games. There is no hardware acceleration support so far.
-```
+<dl>
+<dt>Does the ethernet dongle work?</dt>
+<dd>Yes</dd>
+<dt>Does the Wi-Fi work?</dt>
+<dd>Yes</dd>
+<dt>Can I run Xorg on it?</dt>
+<dd>Yes, with the framebuffer driver.</dd>
+<dt>Does it work on GameCube?</dt>
+<dd>It should. GameCube is supported but author cannot test on it.</dd>
+<dt>Does SD/SDHC/USB work?</dt>
+<dd>Yes</dd>
+<dt>What type of multimedia/gaming applications can I use?</dt>
+<dd>Anything that works on a framebuffer will do. But forget about video playback, 3D or high end games. There is no hardware acceleration support so far.</dd>
+</dl>
 
 # Thanks
 
