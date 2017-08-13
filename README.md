@@ -10,6 +10,8 @@ Up-to-date documentation and scripts can always be found on the [master branch](
 
 Feel free to open Issues/Pull requests for improvement/discussion purposes.
 
+See also [Frequently Asked Questions](https://github.com/neagix/wii-linux-ngx/blob/master/docs/index.md#frequently-asked-questions).
+
 ## How it works
 
 ### Wii
