@@ -120,7 +120,11 @@ Connection will work automatically and it uses regular Debian configuration file
 
 The `whiite-ez-wifi-config` script is included in `/root` to easily connect to a Wi-Fi network.
 
-**NOTE:** WPA2 is supported by the  only in TKIP mode
+Supported modes (from http://en-americas-support.nintendo.com/app/answers/detail/a_id/498/~/compatible-wireless-modes-and-wireless-security-types):
+
+    Wireless Frequency: 2.4 GHz Frequency
+    Wireless Modes: 802.11b, 802.11g
+    Wireless Security Modes: WEP, WPA-PSK (TKIP), WPA-PSK (AES), WPA2-PSK (AES)
 
 ## Network troubleshooting resources
 
