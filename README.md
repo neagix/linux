@@ -67,7 +67,9 @@ A few branches are currently maintained:
 * [rebased-deltares-v3.x](https://github.com/neagix/linux/tree/rebased-deltares-v3.x), original v3.12.11 by DeltaResero rebased for easier merges + v3.12.12 merge
 * [stable-v3.x-w-extras](https://github.com/neagix/linux/tree/stable-v3.x-w-extras), features added by DeltaRes but not in stable-v3.x can be found in this branch.
 
-Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/) is included in stable-v3.x. Some of the dropped features (easy to re-add through cherry-pick) are:
+Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/) is included in stable-v3.x; this means you cannot use Cube Xorg.
+
+Some of the dropped features (easy to re-add through cherry-pick) are:
 * Nold360's GameCube SDHC support (http://www.gc-forever.com/forums/portal.php)  
     - (https://github.com/Nold360/GC-Linux-Kernel-2.6.32/commits/master)<br>  
 
@@ -76,12 +78,11 @@ Experimental branches:
 
 ## Known issues
 
-Boot from MINI is well tested, but not boot from IOS.
+Boot from MINI is well tested, but not boot from IOS. Xorg framebuffer driver is also not tested.
 
 Bugs probably introduced in the port of MIKEp5 from v2.6 to v3.x tree:
 * In IOS mode, external swap partitions don't mount correctly as of kernel version 2.6.39. As a workaround, use a local swapfile (This bug should be relatively easy to find using git bisect)
 * Both IOS and MINI modes seem to have a bug that prevents Linux from booting if a GameCube Controller is inserted in one of the ports while the serial port is enabled in the config.  This bug is caused by a glitch that was created when forward porting from 2.6.32 to 2.6.33.  It should be possible to find this bug using git bisect.
-* Only Cube Xorg or Farter's Framebuffer can be used, not both at the same time.
 * Both IOS and MINI also still suffer from the same hardware limitations that they did in 2.6.32.y.  For example, wireless and disc support for Wii consoles is still limited to MINI mode.  Also, DVDs can be mounted as they were in version 2.6.32.y, but due to hardware limitations, it's unable to write to any disc and is unable to read CDs and certain types of DVD's
     - Support for DVD-RW and DVD-DL disc seems to vary.  Currently, -R and +R (both mini & full-size) DVDs are know to work on both GameCube and Wii consoles.
     All WiiU as well as some of the newer Wii disc drives, lack support for DVDs as they don't contain the same type of disc drive.
