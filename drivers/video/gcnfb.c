@@ -1179,7 +1179,11 @@ static void vi_setup_tv_mode(struct vi_ctl *ctl)
 	out_be32(io_base + VI_UNK3, 0x00ff00ff);
 
 #ifdef CONFIG_WII_AVE_RVL
-	vi_ave_setup(ctl);
+	//if (!ctl->i2c_client)
+	//	return -ENODEV;
+
+	if (ctl->i2c_client)
+		vi_ave_setup(ctl);
 #endif
 }
 
@@ -1467,9 +1471,6 @@ static void vi_ave_setup(struct vi_ctl *ctl)
 	struct i2c_client *client;
 	u8 macrovision[26];
 	u8 component, format, pal60;
-
-	if (!ctl->i2c_client)
-		return -ENODEV;
 
 	client = ctl->i2c_client;
 	memset(macrovision, 0, sizeof(macrovision));
