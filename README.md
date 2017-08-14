@@ -53,7 +53,7 @@ If you prefer to login via USB serial console, edit the last line of `/etc/initt
 Chronological history of Linux for Wii/GameCube:
 
 * [gc-linux (v2.6-based) MIKEp5](http://www.gc-linux.org/wiki/MINI:KernelPreviewFive) - this is the original project and corresponds to the bulk work done to bring Linux to the Wii
-* [DeltaResero's fork (unofficial MIKEp7](https://github.com/DeltaResero/GC-Wii-Linux-Kernels) - considerable work done by DeltaResero to bring up the GC/Wii patches into a v3.x kernel
+* [DeltaResero's fork (unofficial MIKEp7)](https://github.com/DeltaResero/GC-Wii-Linux-Kernels) - considerable work done by DeltaResero to bring up the GC/Wii patches into a v3.x kernel
 * [this project, wii-linux-ngx](https://github.com/neagix/wii-linux-ngx) - continuation of the previous work, distribution packaging and maintenance
 
 The original (2.6.32 and prior) gcLinux work can be found at: http://sourceforge.net/projects/gc-linux/; at the time of writing project has not seen activity since 2013.
