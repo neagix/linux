@@ -1,5 +1,11 @@
+v0.3.2 neagix
+	* kernel v3.15.10
+	* fixed missing eth0 network configuration
+	* added a framebuffer example and visualization tool (fbv)
+	* installed fbset
+
 v0.3.1 neagix
-	* added Farter's patch
+	* added Farter's framebuffer patch
 	* aesthetical fix to first boot initialization
 
 v0.3.0 neagix
