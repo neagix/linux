@@ -1,7 +1,10 @@
+v0.3.3 neagix
+	* fix tty1 display logo
+
 v0.3.2 neagix
 	* kernel v3.15.10
 	* fixed missing eth0 network configuration
-	* added a framebuffer example and visualization tool (fbv)
+	* added a framebuffer visualization tool (fbv)
 	* installed fbset
 
 v0.3.1 neagix
