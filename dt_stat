@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # author: Frank Rowand  frank.rowand@sonymobile.com
 # license: GPL V2
 #_______________________________________________________________________________
@@ -19,7 +18,7 @@ if [ $# -eq 0 ] ; then
 	help=1
 fi
 
-while [[ $# -gt 0 ]] ; do
+while [ $# -gt 0 ]; do
 	ARG=${1:1}
 
 	case "$ARG" in
@@ -67,7 +66,7 @@ PDT="/proc/device-tree/"
 
 #_______________________________________________________________________________
 
-if [[ ${help} -eq 1 ]] ; then
+if [ ${help} -eq 1 ] ; then
 	cat<<EOF 1>&2
 
 usage:
@@ -99,13 +98,13 @@ fi
 
 
 #_______________________________________________________________________________
-if [[ ! -d /sys/devices ]] ; then
+if [ ! -d /sys/devices ] ; then
 	echo "ERROR: /sys/devices is not a directory"                                >&2
 	exit 1
 fi
 
 
-if [[ ! -d ${PDT} ]] ; then
+if [ ! -d "$PDT" ] ; then
 	echo "ERROR: ${PDT} is not a directory"                                      >&2
 	exit 1
 fi
@@ -113,11 +112,10 @@ fi
 # ==============================================================================
 # COLLECT DATA
 
-UEVENTS="$(find /sys/devices -name uevent -type f)"
-
-#-----  nodes with a device that has been bound to a driver
+UEVENTS="$(find /sys/devices -name uevent)"
 
 #-----  nodes of devices with an OF_FULLNAME in uevent
+#-----  nodes with a device that has been bound to a driver
 NODES_DEV=""
 function get_nodes_dev() {
 	for dev in $UEVENTS; do
@@ -134,9 +132,7 @@ function nodes_dev() {
 NODES_DEV_BOUND=""
 function get_nodes_dev_bound() {
 	for uevent in $UEVENTS; do
-		if [[ -d $(dirname "${uevent})/driver") ]]; then
-			grep '^OF_FULLNAME=' "${uevent}" | sed -e 's|OF_FULLNAME=||'
-		fi
+		grep '^OF_FULLNAME=' "${uevent}" | sed -e 's|OF_FULLNAME=||'
 	done | sort
 }
 
@@ -170,7 +166,7 @@ TABS='		'
 
 #-----  devices with an OF_FULLNAME in uevent
 
-if [[ ${cmd_d} -eq 1 ]] ; then
+if [ ${cmd_d} -eq 1 ] ; then
 	for dev in $UEVENTS; do
 		if grep -q '^OF_FULLNAME' "${dev}" ; then
 			node=$(grep '^OF_FULLNAME' "${dev}" | sed -e 's|OF_FULLNAME=||')
@@ -181,7 +177,7 @@ fi
 
 #-----  nodes with a compatible property
 
-if [[ ${cmd_n} -eq 1 ]] ; then
+if [ ${cmd_n} -eq 1 ] ; then
 	for node in $(nodes_compat) ; do
 		if [ -f "${PDT}/${node}/compatible" ]; then
 			echo "$node" $TABS $(< "${PDT}/${node}/compatible")
@@ -191,24 +187,25 @@ fi
 
 
 #-----  nodes with device bound to driver
-
-if [[ ${cmd_nb} -eq 1 ]] ; then
+if [ ${cmd_nb} -eq 1 ] ; then
 	for node in $(nodes_dev_bound) ; do
-		echo "${node}" $TABS $(< "${PDT}/${node}/compatible")
+		if [ -f "$PDT/${node}/compatible" ]; then
+			echo "${node}" $TABS $(< "$PDT/${node}/compatible")
+		fi
 	done
 fi
 
 
 #-----  nodes with a device
 
-if [[ ${cmd_nd} -eq 1 ]] ; then
+if [ ${cmd_nd} -eq 1 ] ; then
 	for uevent in $UEVENTS; do
-		if [[ -d $(dirname ${uevent})/driver ]]; then
-			node=$(grep '^OF_FULLNAME=' ${uevent} | sed -e 's|OF_FULLNAME=||')
+		if [ -f "$uevent" ]; then
+			node=$(grep '^OF_FULLNAME=' "${uevent}" | sed -e 's|OF_FULLNAME=||')
 			if [[ "${node}" != "" ]] ; then
-				dev=$(dirname ${uevent})
+				dev=$(dirname "${uevent}")
 				# driver might be empty
-				driver=$(grep '^DRIVER=' ${uevent} | sed -e 's|DRIVER=||')
+				driver=$(grep '^DRIVER=' "${uevent}" | sed -e 's|DRIVER=||')
 				echo "$node" $TABS $(< "${PDT}/${node}/compatible") $TABS "$dev" $TABS "$driver"
 			fi
 		fi
@@ -218,7 +215,7 @@ fi
 
 #-----  nodes not bound to a driver
 
-if [[ ${cmd_nxb} -eq 1 ]] ; then
+if [ ${cmd_nxb} -eq 1 ] ; then
 	for node in $(nodes_compat); do
 		if ! echo $(nodes_dev_bound) | grep -E -q "(^|)${node}( |\$)"; then
 			echo "${node}" $TABS $(< "${PDT}/${node}/compatible")
@@ -229,9 +226,9 @@ fi
 
 #-----  nodes without a device
 
-if [[ ${cmd_nxd} -eq 1 ]] ; then
+if [ ${cmd_nxd} -eq 1 ] ; then
 	for node in $(nodes_compat); do
-		if ! echo ${nodes_dev} | grep -E -q "(^|)${node}( |\$)"; then
+		if ! echo $(nodes_dev) | grep -E -q "(^|)${node}( |\$)"; then
 			echo "${node}" $TABS $(< "${PDT}/${node}/compatible")
 		fi
 	done
