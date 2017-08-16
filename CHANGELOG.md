@@ -1,5 +1,6 @@
 v0.3.4 neagix
 	* working RGBA mode (some console glitches)
+	* added example PNG
 
 v0.3.3 neagix
 	* fix tty1 display logo

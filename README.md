@@ -2,6 +2,7 @@
 
 <a href="https://neagix.github.io/wii-linux-ngx/"><img alt="Tux + Wii" src="docs/wii-linux-ngx-logo.png" width="160" title="wii-linux-ngx" /></a>
 
+Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/) is included in stable-v3.x
 The [wii-linux-ngx repository](https://github.com/neagix/wii-linux-ngx) contains Linux kernel branches with rebased patches for the purpose of running a modern Linux distribution on the Wii.
 
 Up-to-date documentation and scripts can always be found on the [master branch](https://github.com/neagix/wii-linux-ngx/tree/master).
@@ -58,7 +59,7 @@ Chronological history of Linux for Wii/GameCube:
 
 The original (2.6.32 and prior) gcLinux work can be found at: http://sourceforge.net/projects/gc-linux/; at the time of writing project has not seen activity since 2013.
 
-### Status
+## Status
 
 A few branches are currently maintained:
 * [stable-v3.x](https://github.com/neagix/linux/tree/stable-v3.x), latest working v3.x kernel with most up to date upstream patches
@@ -67,14 +68,27 @@ A few branches are currently maintained:
 * [rebased-deltares-v3.x](https://github.com/neagix/linux/tree/rebased-deltares-v3.x), original v3.12.11 by DeltaResero rebased for easier merges + v3.12.12 merge
 * [stable-v3.x-w-extras](https://github.com/neagix/linux/tree/stable-v3.x-w-extras), features added by DeltaRes but not in stable-v3.x can be found in this branch.
 
-Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/) is included in stable-v3.x; this means you cannot use Cube Xorg.
-
 Some of the dropped features (easy to re-add through cherry-pick) are:
 * Nold360's GameCube SDHC support (http://www.gc-forever.com/forums/portal.php)  
-    - (https://github.com/Nold360/GC-Linux-Kernel-2.6.32/commits/master)<br>  
+    - (https://github.com/Nold360/GC-Linux-Kernel-2.6.32/commits/master)
 
-Experimental branches:
-* broken-v4.x (v4.12.5) seems to panic regardless of SDHC enabled or not; probably due to the DMA coherency changes
+## Framebuffer support
+
+Current version has framebuffer support with Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/) and neagix (author)'s support for RGBA.
+
+To change mode to 32bit:
+```
+fbset -xres 576 -yres 432 -vxres 576 -vyres 432 -depth 32
+```
+
+Change the last parameter to go back to 16bit.
+
+To display an image:
+```
+$ fbv mario.png
+```
+
+Xorg using framebuffer works fine.
 
 ## Known issues
 
