@@ -204,9 +204,6 @@ __vi_reg_field(u16, clk, u8, _54mhz, 0x1, 0);
 #define VI_SEL			0x6e /* DTV Status, 16 bits */
 __vi_reg_field(u16, sel, u8, component, 0x1, 0);
 
-#define VI_HSW			0x70 /* Horizontal Scaling Width, 16 bits */
-__vi_reg_field(u16, hsw, u16, width, 0x3ff, 0);
-
 #define VI_HBE			0x72 /* Horizontal Border End, 16 bits */
 #define VI_HBS			0x74 /* Horizontal Border Start, 16 bits */
 
@@ -696,7 +693,7 @@ static inline uint32_t rgb32rgb32toycbycr(union double_rgba_pixel_t k)
 	b1 = ((k.k32.left >> 0) & 0xff);
 
 	Y1 = clamp(((Yr * r1 + Yg * g1 + Yb * b1) >> RGB2YUV_SHIFT)
-		   + RGB2YUV_LUMA, 32, 235);
+		   + RGB2YUV_LUMA, 16, 235);
 	if (k.k32.left == k.k32.right) {
 		/* this is just another fast path */
 		Y2 = Y1;
@@ -711,7 +708,7 @@ static inline uint32_t rgb32rgb32toycbycr(union double_rgba_pixel_t k)
 
 		Y2 = clamp(((Yr * r2 + Yg * g2 + Yb * b2) >> RGB2YUV_SHIFT)
 			   + RGB2YUV_LUMA,
-			   32, 235);
+			   16, 235);
 
 		r = (r1 + r2) / 2;
 		g = (g1 + g2) / 2;
@@ -719,9 +716,9 @@ static inline uint32_t rgb32rgb32toycbycr(union double_rgba_pixel_t k)
 	}
 
 	Cb = clamp(((Ur * r + Ug * g + Ub * b) >> RGB2YUV_SHIFT)
-		   + RGB2YUV_CHROMA, 32, 240);
+		   + RGB2YUV_CHROMA, 16, 240);
 	Cr = clamp(((Vr * r + Vg * g + Vb * b) >> RGB2YUV_SHIFT)
-		   + RGB2YUV_CHROMA, 32, 240);
+		   + RGB2YUV_CHROMA, 16, 240);
 
 	return (((uint8_t) Y1) << 24) | (((uint8_t) Cb) << 16) |
 	    (((uint8_t) Y2) << 8) | (((uint8_t) Cr) << 0);
@@ -1077,11 +1074,11 @@ static void vi_reset_video(struct vi_ctl *ctl)
 /*
  * Try to determine current TV video mode.
  */
-static void vi_detect_tv_mode(struct vi_ctl *ctl)
+static int vi_detect_tv_mode(struct vi_ctl *ctl)
 {
-	struct vi_tv_mode *modes = vi_tv_modes, *mode;
+	struct vi_tv_mode *modes = vi_tv_modes;
 	void __iomem *io_base = ctl->io_base;
-	char *guess = "";
+	char *source = "forced";
 	enum vi_video_format fmt;
 	int ntsc_idx, pal_idx;
 	u16 dcr;
@@ -1122,41 +1119,46 @@ static void vi_detect_tv_mode(struct vi_ctl *ctl)
 		 */
 		error = vi_ave_get_video_format(ctl, &fmt);
 		if (error) {
-			guess = " (initial guess)";
-			if (force_tv == VI_TV_PAL ||
-			    pal_idx == VI_VM_PAL_576i50)
-				fmt = VI_FMT_PAL;
-			else
-				fmt = VI_FMT_NTSC;
+			drv_printk(KERN_DEBUG, "could not get video format from AVE: %d\n", error);
+			/* initial guess before AVE is setup */
+			error = 0;
+			fmt = vi_get_video_format(ctl);
+			source = "DCR";
+		} else {
+			source = "AVE";
 		}
 #else
 		error = 0;
 		fmt = vi_get_video_format(ctl);
+		source = "DCR";
 #endif
 	}
+	
 	switch (fmt) {
-	case VI_FMT_PAL:
-		mode = modes + pal_idx;
-		break;
 	case VI_FMT_MPAL:
 	case VI_FMT_DEBUG:
 		/* we currently don't support MPAL or DEBUG, sorry */
-		/* FALLTHROUGH */
-	case VI_FMT_NTSC:
-	default:
-		mode = modes + ntsc_idx;
+		return -EINVAL;
+	case VI_FMT_PAL:
+		ctl->mode = modes + pal_idx;
 		break;
+	case VI_FMT_NTSC:
+		ctl->mode = modes + ntsc_idx;
+		break;
+	default:
+		return -EINVAL;
 	}
 
-	ctl->mode = mode;
-
-	drv_printk(KERN_INFO, "%s%s\n", mode->name, guess);
+	drv_printk(KERN_INFO, "format picked is: %d (source: %s)\n", fmt, source);
+	drv_printk(KERN_INFO, "%s%s\n", ctl->mode->name, source);
+	
+	return 0;
 }
 
 /*
  * Initialize the video hardware for a given TV mode.
  */
-static void vi_setup_tv_mode(struct vi_ctl *ctl)
+static int vi_setup_tv_mode(struct vi_ctl *ctl, bool force_detect)
 {
 	void __iomem *io_base = ctl->io_base;
 	struct vi_mode_timings *timings = &ctl->timings;
@@ -1166,10 +1168,19 @@ static void vi_setup_tv_mode(struct vi_ctl *ctl)
 	u16 std, ppl;
 
 	/* we need to re-detect the tv mode if the cable type changes */
-	has_component_cable = vi_has_component_cable(ctl);
-	if ((ctl->has_component_cable && !has_component_cable) ||
-	    (!ctl->has_component_cable && has_component_cable))
-		vi_detect_tv_mode(ctl);
+	if (force_detect) {
+		int error = vi_detect_tv_mode(ctl);
+		if (error)
+			return error;
+	} else {
+		has_component_cable = vi_has_component_cable(ctl);
+		if ((ctl->has_component_cable && !has_component_cable) ||
+			(!ctl->has_component_cable && has_component_cable)) {
+			int error = vi_detect_tv_mode(ctl);
+			if (error)
+				return error;
+		}
+	}
 
 	mode = ctl->mode;
 
@@ -1216,10 +1227,10 @@ static void vi_setup_tv_mode(struct vi_ctl *ctl)
 		 vi_pcr_std(std) |
 		 vi_pcr_wpl((ppl * TV_BYTES_PER_PIXEL) / VI_HORZ_WORD_SIZE));
 
-	/* scaler is disabled */
+	/* disable horizontal scaler */
 	out_be16(io_base + VI_HSR, vi_hsr_stp(256) | vi_hsr_hs_en(0));
 
-	/* filter coeficient table, anti-aliasing */
+	/* filter coefficient table, anti-aliasing */
 	out_be32(io_base + VI_FCT0, vi_fct[0]);
 	out_be32(io_base + VI_FCT1, vi_fct[1]);
 	out_be32(io_base + VI_FCT2, vi_fct[2]);
@@ -1233,9 +1244,6 @@ static void vi_setup_tv_mode(struct vi_ctl *ctl)
 	out_be16(io_base + VI_CLK,
 		 vi_clk__54mhz((mode->flags & VI_VMF_PROGRESSIVE) ? 1 : 0));
 
-	/* superfluous, no scaler */
-	out_be16(io_base + VI_HSW, vi_hsw_width(var->xres));
-
 	/* borders for DEBUG mode encoder, not used in retail consoles */
 	out_be16(io_base + VI_HBE, 0);
 	out_be16(io_base + VI_HBS, 0);
@@ -1244,11 +1252,8 @@ static void vi_setup_tv_mode(struct vi_ctl *ctl)
 	out_be16(io_base + VI_UNK1, 0x00ff);
 	out_be32(io_base + VI_UNK2, 0x00ff00ff);
 	out_be32(io_base + VI_UNK3, 0x00ff00ff);
-
-#ifdef CONFIG_WII_AVE_RVL
-	if (ctl->i2c_client)
-		vi_ave_setup(ctl);
-#endif
+	
+	return 0;
 }
 
 static int vifb_adjust_ll(int ll) {
@@ -1675,7 +1680,7 @@ static void vi_ave_setup(struct vi_ctl *ctl)
 
 	/*
 	 * NOTE
-	 * We _can't_ use the fmt field in DCR to derive "format" here.
+	 * We _can't use the fmt field in DCR to derive "format" here.
 	 * DCR uses fmt=0 (NTSC) also for PAL 525 modes.
 	 */
 
@@ -1712,7 +1717,7 @@ static void vi_ave_setup(struct vi_ctl *ctl)
 }
 
 static struct vi_ctl *first_vi_ctl;
-static struct i2c_client *first_vi_ave;
+static struct i2c_client *first_vi_ave = NULL;
 
 static int vi_attach_ave(struct vi_ctl *ctl, struct i2c_client *client)
 {
@@ -1754,19 +1759,27 @@ static void vi_dettach_ave(struct vi_ctl *ctl)
 static int vi_ave_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id)
 {
-	int error = 0;
+	int error;
+	if (first_vi_ave) {
+		drv_printk(KERN_DEBUG, "vi_ave_probe(): skipping further probes\n");
+		return 0;
+	}
 
 	/* attach first a/v encoder to first framebuffer */
-	if (!first_vi_ave) {
-		first_vi_ave = client;
-		error = vi_attach_ave(first_vi_ctl, client);
-		if (!error) {
-			/* setup again the video mode using the a/v encoder */
-			vi_detect_tv_mode(first_vi_ctl);
-			vi_setup_tv_mode(first_vi_ctl);
-		}
+	error = vi_attach_ave(first_vi_ctl, client);
+	if (error) {
+		drv_printk(KERN_ERR, "vi_ave_probe(): unable to attach AVE: error %d\n", error);
+		return error;
 	}
-	return error;
+
+	first_vi_ave = client;
+	drv_printk(KERN_INFO, "vi_ave_probe(): AVE attached successfully\n");
+#ifdef CONFIG_WII_AVE_RVL
+	vi_ave_setup(first_vi_ctl);
+#endif
+
+	/* setup again the video mode using the a/v encoder */
+	return vi_setup_tv_mode(first_vi_ctl, true);
 }
 
 static int vi_ave_remove(struct i2c_client *client)
@@ -1777,7 +1790,7 @@ static int vi_ave_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id vi_ave_id[] = {
-	{ "wii-ave-rvl", 0 },
+	{ "nintendo,wii-ave-rvl", 0 },
 	{ }
 };
 
@@ -2019,8 +2032,6 @@ static void vifb_clear_all(void)
 			/* no framebuffer to clean */
 			break;
 		case V4L2_PIX_FMT_RGB565:
-			memset(vfb_mem, 0, vfb_len);
-			break;
 		case PIX_FMT_RGB888:
 			memset(vfb_mem, 0, vfb_len);
 			break;
@@ -2049,6 +2060,7 @@ static int vifb_set_par(struct fb_info *info)
 	/* horizontal line in bytes, refers to virtual framebuffer */
 	info->fix.line_length = var->xres_virtual * (var->bits_per_pixel / 8);
 
+	info->flags = FBINFO_DEFAULT;
 	if (vifb_format_is_fourcc(var)) {
 		vfb_format = var->nonstd;
 		if (vfb_format != V4L2_PIX_FMT_YUYV) {
@@ -2068,6 +2080,8 @@ static int vifb_set_par(struct fb_info *info)
 			BUG();
 			return -EINVAL;
 		}
+		/* buffer-backed framebuffers always read fast */
+		info->flags |= FBINFO_READS_FAST | FBINFO_VIRTFB;
 	}
 
 	/* info->fix.smem_* refer to the virtual framebuffer, here however
@@ -2088,7 +2102,6 @@ static int vifb_set_par(struct fb_info *info)
 	vi_flip_page(ctl);
 	spin_unlock_irqrestore(&ctl->lock, flags);
 
-	info->flags = FBINFO_FLAG_DEFAULT;
 	if (want_ypan) {
 		info->fix.xpanstep = 2;
 		info->fix.ypanstep = 1;
@@ -2101,7 +2114,11 @@ static int vifb_set_par(struct fb_info *info)
 	/* always clear framebuffer and screen when changing modes */
 	vifb_clear_all();
 
-	vi_setup_tv_mode(ctl);
+	vi_setup_tv_mode(ctl, false);
+#ifdef CONFIG_WII_AVE_RVL
+	if (ctl->i2c_client)
+		vi_ave_setup(ctl);
+#endif
 
 	/* enable the video retrace handling */
 	vi_enable_interrupts(ctl, 1);
@@ -2232,7 +2249,7 @@ static int vifb_do_probe(struct device *dev,
 	int i;
 	unsigned long adr, size;
 	uint32_t *j;
-
+	
 	info = framebuffer_alloc(sizeof(struct vi_ctl), dev);
 	if (!info)
 		return -EINVAL;;
@@ -2243,10 +2260,41 @@ static int vifb_do_probe(struct device *dev,
 
 	ctl = info->par;
 	ctl->info = info;
-
-	/* first things first: create I/O mapping between the Hollywood/Flipper video card physical framebuffer and kernel's virtual memory */
-	ctl->io_base = ioremap(mem->start, mem->end - mem->start + 1);
 	ctl->irq = irq;
+
+	/* first things first: remap some video card control ports */
+	ctl->io_base = ioremap_nocache(mem->start, mem->end - mem->start + 1);
+	if (!ctl->io_base) {
+		drv_printk(KERN_ERR,
+			   "failed to ioremap video card ports at %p (%dk)\n",
+			   (void *)mem->start, (int)(mem->end - mem->start + 1));
+		error = -EIO;
+		goto err_nofbmem;
+	}
+
+	/* NOTE: request_mem_region is not called because it fails,
+	 * probably this range is already claimed by some other device...
+	 * See also: http://www.makelinux.net/ldd3/chp-9-sect-4
+	 */
+	fb_mem = ioremap_nocache(xfb_start, xfb_size);
+	if (!fb_mem) {
+		drv_printk(KERN_ERR,
+			   "failed to ioremap video memory at %p (%ldk)\n",
+			   (void *)xfb_start,
+			   xfb_size / 1024);
+		error = -EIO;
+		goto err_ioremap;
+	}
+
+	/* store global variables for the physical framebuffer */
+	gx_fb_start = xfb_start;
+	gx_fb_size = xfb_size;
+
+	drv_printk(KERN_INFO,
+		   "framebuffer at 0x%p mapped to 0x%p, size %ldk\n",
+		   (void *)xfb_start, fb_mem,
+		   xfb_size / 1024);
+
 
 	/* create a virtual framebuffer, which is used for on-the-fly colorspace conversions 
 	 * always as big as the largest mode supported
@@ -2269,7 +2317,6 @@ static int vifb_do_probe(struct device *dev,
 	 * Normally screen_base would be the physical framebuffer, but here we play on-the-fly colorconversion.
 	 */
 	info->screen_base = (char __iomem *)info->fix.smem_start;
-	info->flags = FBINFO_DEFAULT | FBINFO_READS_FAST | FBINFO_VIRTFB /* |	FBINFO_HWACCEL_IMAGEBLIT | FBINFO_HWACCEL_FILLRECT | FBINFO_HWACCEL_COPYAREA */;
 
 	adr = info->fix.smem_start;
 	while (size > 0) {
@@ -2281,49 +2328,25 @@ static int vifb_do_probe(struct device *dev,
 		   "virtual framebuffer at 0x%p, size %ldk\n",
 		   (void *)vfb_mem, PAGE_ALIGN(vfb_len) / 1024);
 
-	/*
-	 * Map the video card's memory (this is the physical framebuffer)
-	 * into kernel's virtual memory space
-	 */
-	if (!request_mem_region(xfb_start, xfb_size,
-				DRV_MODULE_NAME)) {
-		drv_printk(KERN_WARNING,
-			   "failed to request video memory at %p\n",
-			   (void *)xfb_start);
-	}
-
-	/* store global variables for the physical framebuffer */
-	gx_fb_start = xfb_start;
-	gx_fb_size = xfb_size;
-	
-	fb_mem = ioremap(xfb_start, xfb_size);
-	if (!fb_mem) {
-		drv_printk(KERN_ERR,
-			   "failed to ioremap video memory at %p (%ldk)\n",
-			   (void *)xfb_start,
-			   xfb_size / 1024);
-		error = -EIO;
-		goto err_ioremap;
-	}
-	drv_printk(KERN_INFO,
-		   "framebuffer at 0x%p mapped to 0x%p, size %ldk\n",
-		   (void *)xfb_start, fb_mem,
-		   xfb_size / 1024);
-
-	/* Clear virtual framebuffer */
-	memset(vfb_mem, 0, vfb_len);
-	/* Clear screen */
-	i = xfb_size >> 2;
-	j = (uint32_t *)fb_mem;
-	while (i--) {
-		*(j++) = 0x10801080;
-	}
-
 	spin_lock_init(&ctl->lock);
 	init_waitqueue_head(&ctl->vtrace_waitq);
 
 	vi_reset_video(ctl);
 	vi_detect_tv_mode(ctl);
+
+#ifdef CONFIG_WII_AVE_RVL
+	if (!first_vi_ctl)
+		first_vi_ctl = ctl;
+
+	/* try to attach the a/v encoder now */
+	error = vi_attach_ave(ctl, first_vi_ave);
+	if (error)
+	{
+		drv_printk(KERN_ERR, "vifb_do_probe(): unable to attach AVE: error %d\n", error);
+	} else {
+		drv_printk(KERN_INFO, "vifb_do_probe(): AVE attached successfully\n");
+	}
+#endif
 
 	if (!nostalgic) {
 		/* by default, start with overscan compensation */
@@ -2354,6 +2377,15 @@ static int vifb_do_probe(struct device *dev,
 	drv_printk(KERN_INFO, "mode is %dx%dx%d (FOURCC colorspace = 0x%x)\n", info->var.xres,
 		   info->var.yres, info->var.bits_per_pixel, info->var.colorspace);
 
+	/* Clear virtual framebuffer */
+	memset(vfb_mem, 0, vfb_len);
+	/* Clear screen */
+	i = xfb_size >> 2;
+	j = (uint32_t *)fb_mem;
+	while (i--) {
+		*(j++) = 0x10801080;
+	}
+
 	dev_set_drvdata(dev, info);
 
 	vi_enable_interrupts(ctl, 0);
@@ -2370,14 +2402,6 @@ static int vifb_do_probe(struct device *dev,
 		goto err_register_framebuffer;
 	}
 
-#ifdef CONFIG_WII_AVE_RVL
-	if (!first_vi_ctl)
-		first_vi_ctl = ctl;
-
-	/* try to attach the a/v encoder now */
-	vi_attach_ave(ctl, first_vi_ave);
-#endif
-
 	printk(KERN_INFO "fb%d: %s frame buffer device\n",
 	       info->node, info->fix.id);
 
@@ -2391,6 +2415,9 @@ err_request_irq:
 err_alloc_cmap:
 	iounmap(fb_mem);
 err_ioremap:
+	/* release memory mapping region */
+	release_mem_region(gx_fb_start, gx_fb_size);
+err_nofbmem:
 	/* release the physical framebuffer */
 	vifb_release_virtual_fb();
 
@@ -2414,6 +2441,9 @@ static int vifb_do_remove(struct device *dev)
 	fb_dealloc_cmap(&info->cmap);
 	iounmap(fb_mem);
 
+	/* release memory mapping region */
+	release_mem_region(gx_fb_start, gx_fb_size);
+
 	vifb_release_virtual_fb();
 
 	dev_set_drvdata(dev, NULL);
@@ -2432,9 +2462,6 @@ static int vifb_do_remove(struct device *dev)
 static void vifb_release_virtual_fb() {
 	unsigned long size;
 	unsigned long adr = (unsigned long)vfb_mem;
-	
-	/* release memory mapping region */
-	release_mem_region(gx_fb_start, gx_fb_size);
 	
 	/* release the virtual framebuffer's reserved pages */
 	size = PAGE_ALIGN(vfb_len);
@@ -2594,6 +2621,8 @@ static int __init vifb_init_module(void)
 			return -ENODEV;
 	}
 	error = vifb_setup(option);
+	if (error)
+		return error;
 #endif
 
 #ifdef CONFIG_WII_AVE_RVL
