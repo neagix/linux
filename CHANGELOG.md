@@ -1,3 +1,6 @@
+v0.3.4 neagix
+	* working RGBA mode (some console glitches)
+
 v0.3.3 neagix
 	* fix tty1 display logo
 
