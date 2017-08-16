@@ -530,6 +530,7 @@ static struct fb_var_screeninfo vifb_var = {
 	.activate = FB_ACTIVATE_NOW,
 	.width = 640,
 	.height = 480,
+	/* change to 32 to start with RGB888 mode by default */
 	.bits_per_pixel = 16,
 	.vmode = FB_VMODE_INTERLACED,
 };
@@ -570,6 +571,7 @@ static void *fb_mem, *vfb_mem;
 static unsigned long vfb_len;
 static unsigned int gx_fb_size;
 static int vfb_format;
+#define	vfb_diff	0
 
 /*
  *
@@ -693,13 +695,8 @@ static inline uint32_t rgb32rgb32toycbycr(union double_rgba_pixel_t k)
 	g1 = ((k.k32.left >> 8) & 0xff);
 	b1 = ((k.k32.left >> 0) & 0xff);
 
-	/* fast (approximated) scaling to 8 bits, thanks to Masken */
-	r1 = (r1 << 3) | (r1 >> 2);
-	g1 = (g1 << 2) | (g1 >> 4);
-	b1 = (b1 << 3) | (b1 >> 2);
-
 	Y1 = clamp(((Yr * r1 + Yg * g1 + Yb * b1) >> RGB2YUV_SHIFT)
-		   + RGB2YUV_LUMA, 16, 235);
+		   + RGB2YUV_LUMA, 32, 235);
 	if (k.k32.left == k.k32.right) {
 		/* this is just another fast path */
 		Y2 = Y1;
@@ -711,13 +708,10 @@ static inline uint32_t rgb32rgb32toycbycr(union double_rgba_pixel_t k)
 		r2 = ((k.k32.right >> 16) & 0xff);
 		g2 = ((k.k32.right >> 8) & 0xff);
 		b2 = ((k.k32.right >> 0) & 0xff);
-		r2 = (r2 << 3) | (r2 >> 2);
-		g2 = (g2 << 2) | (g2 >> 4);
-		b2 = (b2 << 3) | (b2 >> 2);
 
 		Y2 = clamp(((Yr * r2 + Yg * g2 + Yb * b2) >> RGB2YUV_SHIFT)
 			   + RGB2YUV_LUMA,
-			   16, 235);
+			   32, 235);
 
 		r = (r1 + r2) / 2;
 		g = (g1 + g2) / 2;
@@ -725,9 +719,9 @@ static inline uint32_t rgb32rgb32toycbycr(union double_rgba_pixel_t k)
 	}
 
 	Cb = clamp(((Ur * r + Ug * g + Ub * b) >> RGB2YUV_SHIFT)
-		   + RGB2YUV_CHROMA, 16, 240);
+		   + RGB2YUV_CHROMA, 32, 240);
 	Cr = clamp(((Vr * r + Vg * g + Vb * b) >> RGB2YUV_SHIFT)
-		   + RGB2YUV_CHROMA, 16, 240);
+		   + RGB2YUV_CHROMA, 32, 240);
 
 	return (((uint8_t) Y1) << 24) | (((uint8_t) Cb) << 16) |
 	    (((uint8_t) Y2) << 8) | (((uint8_t) Cr) << 0);
@@ -1337,6 +1331,32 @@ static void vi_transcode_RGB565(struct vi_ctl *ctl)
 	unsigned int height = info->var.yres;
 	/* address of the virtual framebuffer */
 	uint32_t *src = (uint32_t *)info->screen_base;
+	/* address of the memory-mapped physical framebuffer */
+	uint32_t *dst = fb_mem;
+	
+	/* divided by 4 as two 16bit units (read as a single uint32_t) are mapped to two YUYV pixels */
+	width = info->fix.line_length >> 2;
+
+	while (height--) {
+		int j = width;
+		while (j--) {
+			uint32_t k = *(src + j);
+			*(dst + j) = rgbrgb16toycbycr(k);
+		}
+		dst += width;
+		src += width;
+	}
+}
+
+static void vi_transcode_RGB565_diff(struct vi_ctl *ctl)
+{
+	/* Copy and convert contents of virtual framebuffer,
+	 * uses a secondary buffer to check data which needs to be copied */
+	struct fb_info *info = ctl->info;
+	unsigned int width;
+	unsigned int height = info->var.yres;
+	/* address of the virtual framebuffer */
+	uint32_t *src = (uint32_t *)info->screen_base;
 	/* address of backup copy of the virtual framebuffer */
 	uint32_t *src_diff;
 	/* address of the memory-mapped physical framebuffer */
@@ -1362,6 +1382,32 @@ static void vi_transcode_RGB565(struct vi_ctl *ctl)
 }
 
 static void vi_transcode_RGB888(struct vi_ctl *ctl)
+{
+	/* Copy and convert contents of virtual framebuffer,
+	 * uses a secondary buffer to check data which needs to be copied */
+	struct fb_info *info = ctl->info;
+	unsigned int width;
+	unsigned int height = info->var.yres;
+	/* address of the virtual framebuffer */
+	union double_rgba_pixel_t *src = (union double_rgba_pixel_t *)info->screen_base;
+	/* address of the memory-mapped physical framebuffer */
+	uint32_t *dst = fb_mem;
+	
+	/* divided by 8 as two 32bit units (read as two uint32_t) are mapped to two YUYV pixels (2 16bit values) */
+	width = info->fix.line_length >> 3;
+
+	while (height--) {
+		int j = width;
+		while (j--) {
+			union double_rgba_pixel_t k = *(src + j);
+			*(dst + j) = rgb32rgb32toycbycr(k);
+		}
+		dst += width;
+		src += width;
+	}
+}
+
+static void vi_transcode_RGB888_diff(struct vi_ctl *ctl)
 {
 	/* Copy and convert contents of virtual framebuffer,
 	 * uses a secondary buffer to check data which needs to be copied */
@@ -1431,11 +1477,17 @@ static irqreturn_t vi_irq_handler(int irq, void *dev)
 			break;
 			case V4L2_PIX_FMT_RGB565:
 				/* RGB565 -> YUYV */
-				vi_transcode_RGB565(ctl);
+				if (vfb_diff)
+					vi_transcode_RGB565_diff(ctl);
+				else
+					vi_transcode_RGB565(ctl);
 				break;
 			case PIX_FMT_RGB888:
 				/* (RGB32, RGB32) to YUYV */
-				vi_transcode_RGB888(ctl);
+				if (vfb_diff)
+					vi_transcode_RGB888_diff(ctl);
+				else
+					vi_transcode_RGB888(ctl);
 				break;
 			default:
 				BUG();
@@ -1448,7 +1500,7 @@ static irqreturn_t vi_irq_handler(int irq, void *dev)
 		return IRQ_HANDLED;
 	}
 
-	//TODO: try disabling?
+#if 0
 	/* currently unused, just in case */
 	val = in_be32(io_base + VI_DI2);
 	if (vi_dix_get_irq(val)) {
@@ -1460,6 +1512,7 @@ static irqreturn_t vi_irq_handler(int irq, void *dev)
 		out_be32(io_base + VI_DI3, vi_dix_clear_irq(val));
 		return IRQ_HANDLED;
 	}
+#endif
 
 	return IRQ_NONE;
 }
@@ -1955,6 +2008,34 @@ static int vifb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	return 0;
 }
 
+static void vifb_clear_all(void)
+{
+	int i;
+	uint32_t *j;
+	/* clear virtual framebuffer */
+	switch (vfb_format)
+	{
+		case V4L2_PIX_FMT_YUYV:
+			/* no framebuffer to clean */
+			break;
+		case V4L2_PIX_FMT_RGB565:
+			memset(vfb_mem, 0, vfb_len);
+			break;
+		case PIX_FMT_RGB888:
+			memset(vfb_mem, 0, vfb_len);
+			break;
+		default:
+			BUG();
+			return;
+	}
+	/* clear screen */
+	i = gx_fb_size >> 2;
+	j = (uint32_t *)fb_mem;
+	while (i--) {
+		*(j++) = 0x10801080;
+	}
+}
+
 /*
  * Set the video mode according to info->var.
  */
@@ -1989,9 +2070,6 @@ static int vifb_set_par(struct fb_info *info)
 		}
 	}
 
-	/* always clear framebuffer when changing modes */
-	memset((void *)info->fix.smem_start, 0, PAGE_ALIGN(info->fix.smem_len));
-
 	/* info->fix.smem_* refer to the virtual framebuffer, here however
 	 * we want to store physical fb info, namely the
 	 * addresses of the two pages used for flipping
@@ -2019,6 +2097,9 @@ static int vifb_set_par(struct fb_info *info)
 		info->fix.xpanstep = 0;
 		info->fix.ypanstep = 0;
 	}
+	
+	/* always clear framebuffer and screen when changing modes */
+	vifb_clear_all();
 
 	vi_setup_tv_mode(ctl);
 
@@ -2138,7 +2219,7 @@ struct fb_ops vifb_ops = {
  *
  */
 
-static void vifb_cleanup_virtual_fb(void);
+static void vifb_release_virtual_fb(void);
 
 static int vifb_do_probe(struct device *dev,
 			 struct resource *mem, unsigned int irq,
@@ -2188,7 +2269,6 @@ static int vifb_do_probe(struct device *dev,
 	 * Normally screen_base would be the physical framebuffer, but here we play on-the-fly colorconversion.
 	 */
 	info->screen_base = (char __iomem *)info->fix.smem_start;
-	memset(info->screen_base, 0, size);
 	info->flags = FBINFO_DEFAULT | FBINFO_READS_FAST | FBINFO_VIRTFB /* |	FBINFO_HWACCEL_IMAGEBLIT | FBINFO_HWACCEL_FILLRECT | FBINFO_HWACCEL_COPYAREA */;
 
 	adr = info->fix.smem_start;
@@ -2230,6 +2310,8 @@ static int vifb_do_probe(struct device *dev,
 		   (void *)xfb_start, fb_mem,
 		   xfb_size / 1024);
 
+	/* Clear virtual framebuffer */
+	memset(vfb_mem, 0, vfb_len);
 	/* Clear screen */
 	i = xfb_size >> 2;
 	j = (uint32_t *)fb_mem;
@@ -2310,7 +2392,7 @@ err_alloc_cmap:
 	iounmap(fb_mem);
 err_ioremap:
 	/* release the physical framebuffer */
-	vifb_cleanup_virtual_fb();
+	vifb_release_virtual_fb();
 
 	dev_set_drvdata(dev, NULL);
 	iounmap(ctl->io_base);
@@ -2332,7 +2414,7 @@ static int vifb_do_remove(struct device *dev)
 	fb_dealloc_cmap(&info->cmap);
 	iounmap(fb_mem);
 
-	vifb_cleanup_virtual_fb();
+	vifb_release_virtual_fb();
 
 	dev_set_drvdata(dev, NULL);
 	iounmap(ctl->io_base);
@@ -2347,7 +2429,7 @@ static int vifb_do_remove(struct device *dev)
 }
 
 /* clean up reserved pages of the virtual framebuffer */
-static void vifb_cleanup_virtual_fb() {
+static void vifb_release_virtual_fb() {
 	unsigned long size;
 	unsigned long adr = (unsigned long)vfb_mem;
 	
