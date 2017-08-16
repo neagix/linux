@@ -1,3 +1,6 @@
+v0.3.5 neagix
+	* fixed login on tty (thanks to DeltaResero for reporting)
+
 v0.3.4 neagix
 	* working RGBA mode (some console glitches)
 	* added example PNG
