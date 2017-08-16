@@ -1,0 +1,27 @@
+#! /bin/sh
+
+
+echo ===== devices
+dt_stat --d   | grep "$1"
+echo
+
+echo ===== nodes
+dt_stat --n   | grep "$1"
+echo
+
+echo ===== nodes bound to a driver
+dt_stat --nb  | grep "$1"
+echo
+
+echo ===== nodes with a device
+dt_stat --nd  | grep "$1"
+echo
+
+echo ===== nodes not bound to a driver
+dt_stat --nxb | grep "$1"
+echo
+
+echo ===== nodes without a device
+dt_stat --nxd | grep "$1"
+echo
+

@@ -1,0 +1,249 @@
+#! /bin/sh
+
+# author: Frank Rowand  frank.rowand@sonymobile.com
+# license: GPL V2
+
+#_______________________________________________________________________________
+
+script=`basename $0`
+help=0
+
+
+cmd_d=0
+cmd_n=0
+cmd_nb=0
+cmd_nd=0
+cmd_nxb=0
+cmd_nxd=0
+
+
+while [[ $# -gt 0 ]] ; do
+
+	case $1 in
+
+		-h | -help | --help )
+			help=1
+			shift $#
+			;;
+
+		--d )
+			cmd_d=1
+			shift
+			;;
+
+		--n )
+			cmd_n=1
+			shift
+			;;
+
+		--nb )
+			cmd_nb=1
+			shift
+			;;
+
+		--nd )
+			cmd_nd=1
+			shift
+			;;
+
+		--nxb)
+			cmd_nxb=1
+			shift
+			;;
+
+		--nxd )
+			cmd_nxd=1
+			shift
+			;;
+
+		* )
+			break
+			;;
+	esac
+
+done
+
+if [ $# -gt 0 ] ; then
+	help=1
+fi
+
+
+#_______________________________________________________________________________
+
+PDT="/proc/device-tree/"
+
+
+#_______________________________________________________________________________
+
+if [[ ${help} -eq 1 ]] ; then
+
+echo ""                                                                      >&2
+echo "usage:"                                                                >&2
+echo "   ${script}"                                                          >&2
+echo ""                                                                      >&2
+echo "      -h         synonym for --help"                                   >&2
+echo "      -help      synonym for --help"                                   >&2
+echo "      --help     print this message and exit"                          >&2
+echo ""                                                                      >&2
+echo "      --d        report devices"                                       >&2
+echo "      --n        report nodes"                                         >&2
+echo "      --nb       report nodes bound to a driver"                       >&2
+echo "      --nd       report nodes with a device"                           >&2
+echo "      --nxb      report nodes not bound to a driver"                   >&2
+echo "      --nxd      report nodes without a device"                        >&2
+echo ""                                                                      >&2
+echo "   Reports about nodes in ${PDT}"                                      >&2
+echo "   Nodes without a compatible string are not reported"                 >&2
+echo ""                                                                      >&2
+echo "   data fields reported:"                                              >&2
+echo "      --d        Device Node"                                          >&2
+echo "      --n        Node Compatible"                                      >&2
+echo "      --nb       Node Compatible"                                      >&2
+echo "      --nd       Node Compatible Device Driver"                        >&2
+echo "      --nxb      Node Compatible"                                      >&2
+echo "      --nxd      Node Compatible"                                      >&2
+echo ""                                                                      >&2
+
+exit 1
+
+fi
+
+
+#_______________________________________________________________________________
+
+
+if [[ ! -d /sys/devices ]] ; then
+
+echo ""                                                                      >&2
+echo "ERROR: /sys/devices is not a directory"                                >&2
+echo ""                                                                      >&2
+
+exit 1
+
+fi
+
+
+if [[ ! -d ${PDT} ]] ; then
+
+echo ""                                                                      >&2
+echo "ERROR: ${PDT} is not a directory"                                      >&2
+echo ""                                                                      >&2
+
+exit 1
+
+fi
+
+
+# ==============================================================================
+# COLLECT DATA
+
+#-----  nodes of devices with an OF_FULLNAME in uevent
+
+nodes_dev=$(
+	for dev in `find /sys/devices -name uevent`; do
+		grep '^OF_FULLNAME=' ${dev} | sed -e 's|OF_FULLNAME=||'
+	done | sort
+	)
+
+
+#-----  nodes with a device that has been bound to a driver
+
+nodes_dev_bound=$(
+	for uevent in `find /sys/devices -name uevent`; do
+		if [[ -d $(dirname ${uevent})/driver ]]; then
+			grep '^OF_FULLNAME=' ${uevent} | sed -e 's|OF_FULLNAME=||'
+		fi
+	done | sort
+	)
+
+
+#-----  nodes with a compatible property
+
+nodes_compatible=$( \
+	for node in `find ${PDT} -name compatible`; do
+		echo $(dirname ${node}) | sed -e 's|\/proc\/device-tree||'
+	done | sort
+	)
+
+
+# ==============================================================================
+# REPORTS
+
+#-----  devices with an OF_FULLNAME in uevent
+
+if [[ ${cmd_d} -eq 1 ]] ; then
+	for dev in `find /sys/devices -name uevent`; do
+		if grep -q '^OF_FULLNAME' ${dev} ; then
+			node=$(grep '^OF_FULLNAME' ${dev} | sed -e 's|OF_FULLNAME=||')
+			echo $(dirname ${dev}) ${node}
+		fi
+	done | sort
+fi
+
+
+#-----  nodes with a compatible property
+
+if [[ ${cmd_n} -eq 1 ]] ; then
+	for node in ${nodes_compatible} ; do
+		echo ${node} $(cat ${PDT}/${node}/compatible)
+	done
+fi
+
+
+#-----  nodes with device bound to driver
+
+if [[ ${cmd_nb} -eq 1 ]] ; then
+	for node in ${nodes_dev_bound} ; do
+		echo ${node} $(cat ${PDT}/${node}/compatible)
+	done
+fi
+
+
+#-----  nodes with a device
+
+if [[ ${cmd_nd} -eq 1 ]] ; then
+	for uevent in `find /sys/devices -name uevent`; do
+		if [[ -d $(dirname ${uevent})/driver ]]; then
+			node=$(  grep '^OF_FULLNAME=' ${uevent} | sed -e 's|OF_FULLNAME=||')
+			if [[ "${node}" != "" ]] ; then
+				dev=$(dirname ${uevent})
+				# driver might be empty
+				driver=$(grep '^DRIVER=' ${uevent} | sed -e 's|DRIVER=||' )
+				compatible=$(cat ${PDT}/${node}/compatible)
+				echo ${node} ${compatible} ${dev} ${driver}
+			fi
+		fi
+	done | sort
+fi
+
+
+#-----  nodes not bound to a driver
+
+if [[ ${cmd_nxb} -eq 1 ]] ; then
+	for node in ${nodes_compatible}; do
+		if ! echo ${nodes_dev_bound} | grep -E -q "(^| )${node}( |\$)"; then
+			echo ${node} $(cat ${PDT}/${node}/compatible)
+		fi
+	done
+fi
+
+
+#-----  nodes without a device
+
+if [[ ${cmd_nxd} -eq 1 ]] ; then
+	for node in ${nodes_compatible}; do
+		if ! echo ${nodes_dev} | grep -E -q "(^| )${node}( |\$)"; then
+			echo ${node} $(cat ${PDT}/${node}/compatible)
+		fi
+	done
+fi
+
+
+# ==============================================================================
+# ______________________________________________________________________________
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# ______________________________________________________________________________
+#  vi config follows:
+#
+#  add "set modelines" to ~/.exrc or ~/.vimrc to set tabs automatically
+#  ex:set tabstop=3 shiftwidth=3 sts=3:
