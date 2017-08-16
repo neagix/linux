@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/bash
 
 # author: Frank Rowand  frank.rowand@sonymobile.com
 # license: GPL V2
@@ -113,24 +113,14 @@ fi
 
 
 if [[ ! -d /sys/devices ]] ; then
-
-echo ""                                                                      >&2
-echo "ERROR: /sys/devices is not a directory"                                >&2
-echo ""                                                                      >&2
-
-exit 1
-
+	echo "ERROR: /sys/devices is not a directory"                                >&2
+	exit 1
 fi
 
 
 if [[ ! -d ${PDT} ]] ; then
-
-echo ""                                                                      >&2
-echo "ERROR: ${PDT} is not a directory"                                      >&2
-echo ""                                                                      >&2
-
-exit 1
-
+	echo "ERROR: ${PDT} is not a directory"                                      >&2
+	exit 1
 fi
 
 
@@ -237,13 +227,3 @@ if [[ ${cmd_nxd} -eq 1 ]] ; then
 		fi
 	done
 fi
-
-
-# ==============================================================================
-# ______________________________________________________________________________
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# ______________________________________________________________________________
-#  vi config follows:
-#
-#  add "set modelines" to ~/.exrc or ~/.vimrc to set tabs automatically
-#  ex:set tabstop=3 shiftwidth=3 sts=3:
