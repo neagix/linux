@@ -56,6 +56,7 @@
 			clock-frequency = <729000000>; /* 729MHz */
 			bus-frequency = <243000000>; /* 243MHz core-to-bus 3x */
 			timebase-frequency = <60750000>; /* 243MHz / 4 */
+			/* Following required by dtc but not used */
 			i-cache-line-size = <32>;
 			d-cache-line-size = <32>;
 			i-cache-size = <32768>;
@@ -115,6 +116,13 @@
 			reg = <0x0c005000 0x200		/* DSP */
 			       0x0d006c00 0x20>;	/* AI */
 			interrupts = <6>;
+			interrupt-parent = <&PIC0>;
+		};
+
+		serial@0d006400 {
+			compatible = "nintendo,hollywood-serial";
+			reg = <0x0d006400 0x100>;
+			interrupts = <3>;
 			interrupt-parent = <&PIC0>;
 		};
 
@@ -256,9 +264,10 @@
 				#size-cells = <0>;
 					compatible = "virtual,i2c-gpio";
 
-					gpios = <&GPIO 16 0		/* 31-15 */
-							&GPIO 17 0>;	/* 31-14 */
-			        scl-is-open-drain = <1>;
+					gpios = <&GPIO 16 0
+							&GPIO 17 0>;
+					clock-frequency = <250000>;
+					scl-is-open-drain = <1>;
 			        sda-is-open-drain = <1>;
 			        sda-enforce-dir = <1>;
 					scl-is-output-only = <1>;
