@@ -1,4 +1,9 @@
+v0.3.6 neagix
+	* added Gumboot bootloader
+	* switched first partition to FAT32
+
 v0.3.5 neagix
+	* use LABEL= on root command line to allow booting from SD/USB
 	* fixed login on tty (thanks to DeltaResero for reporting)
 
 v0.3.4 neagix

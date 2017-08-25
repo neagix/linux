@@ -5,9 +5,10 @@
 Running modern Linux on Wii consoles.
 
 This project provides:
-* source code and scripts to compile a working Linux kernel for GC/Wii, in the form of git branches (stable Linux trees + necessary patches)
+* source code for a working Linux kernel for GC/Wii, in the form of git branches (stable Linux trees + necessary patches)
 * kernel single-binary releases in ELF format (zImage)
 * ready to use Debian Jessie images/rootfs
+* [Gumboot](https://github.com/neagix/wii-linux-ngx/blob/master/docs/gumboot.md)
 * support for framebuffer RGBA mode
 
 See [README](https://github.com/neagix/wii-linux-ngx/tree/master) for a full description and instructions.
@@ -46,3 +47,4 @@ Thanks to the following people/organizations/groups:
 * the Linux Kernel developers
 * the GC-Linux team
 * DeltaResero
+* marcan
