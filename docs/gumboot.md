@@ -42,8 +42,5 @@ This is a screenshot of the default `gumboot.lst` menu:
 
 # Thanks
 
-Thanks to the following people/organizations/groups:
-* the Linux Kernel developers
-* the GC-Linux team
-* DeltaResero
+Thanks to the following people:
 * marcan
