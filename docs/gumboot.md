@@ -26,12 +26,16 @@ It is released in ELF format with the wii-linux-ngx project:
 <dl>
 <dt>Does it support multiple partitions?</dt>
 <dd>Yes, all primary partitions in FAT16 and FAT32 format are supported.</dd>
+<dt>Does it support the GameCube controller?</dt>
+<dd>Yes.</dd>
 <dt>Does it support extended partitions?</dt>
 <dd>No.</dd>
 <dt>Does it support long filenames? exFAT?</dt>
 <dd>No, the middleware has broken support for them. Make sure all your paths are in 8.3 format!</dd>
 <dt>Does it support splash images?</dt>
 <dd>No, it's a work in progress.</dd>
+<dt>Does it support WiiMote?</dt>
+<dd>No! It requires an USB and Bluetooth stack, if you know what I am talking about.</dd>
 </dl>
 
 # Screenshot
