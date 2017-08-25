@@ -2,7 +2,6 @@
 
 <a href="https://neagix.github.io/wii-linux-ngx/"><img alt="Tux + Wii" src="docs/wii-linux-ngx-logo.png" width="160" title="wii-linux-ngx" /></a>
 
-Farter's Deferred I/O Framebuffer patch (http://fartersoft.com/) is included in stable-v3.x
 The [wii-linux-ngx repository](https://github.com/neagix/wii-linux-ngx) contains Linux kernel branches with rebased patches for the purpose of running a modern Linux distribution on the Wii.
 
 Up-to-date documentation and scripts can always be found on the [master branch](https://github.com/neagix/wii-linux-ngx/tree/master).
