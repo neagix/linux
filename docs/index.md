@@ -8,10 +8,10 @@ This project provides:
 * source code for a working Linux kernel for GC/Wii, in the form of git branches (stable Linux trees + necessary patches)
 * kernel single-binary releases in ELF format (zImage)
 * ready to use Debian Jessie images/rootfs
-* [Gumboot](https://github.com/neagix/wii-linux-ngx/blob/master/docs/gumboot.md)
+* [Gumboot](https://neagix.github.io/wii-linux-ngx/gumboot)
 * support for framebuffer RGBA mode
 
-See [README](https://github.com/neagix/wii-linux-ngx/tree/master) for a full description and instructions.
+See [README](https://github.com/neagix/wii-linux-ngx/blob/master/README.md) for a full description and instructions.
 
 # Releases
 

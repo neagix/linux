@@ -16,7 +16,7 @@ See also [Frequently Asked Questions](https://github.com/neagix/wii-linux-ngx/bl
 ### Wii
 
 wii-linux-ngx works with an SD card (or USB mass storage) with the following layout:
-* first partition, FAT32 with MINI and [Gumboot](https://neagix.github.io/wii-linux-ngx/gumboot/) (Bootmii is provided as fallback)
+* first partition, FAT32 with MINI and [Gumboot](https://neagix.github.io/wii-linux-ngx/gumboot) (Bootmii is provided as fallback)
 * second partition with ext3 Linux rootfs
 
 You can add other partitions of your choice; performance of SD cards is better than USB mass storage.
@@ -28,7 +28,7 @@ Wii power on -> MINI -> (Gumboot selection with power/eject buttons ->) Linux ke
 ```
 
 See also:
-* [Gumboot](https://neagix.github.io/wii-linux-ngx/gumboot/)
+* [Gumboot](https://neagix.github.io/wii-linux-ngx/gumboot)
 * [customized MINI](https://github.com/neagix/mini)
 
 ### GameCube
