@@ -16,7 +16,7 @@ It is released in ELF format with the wii-linux-ngx project:
 * timeout and default entry
 * customizable kernel command-line arguments
 * FAT16/FAT32 directory browsing and launching of ELF files
-* all 4 primary partitions
+* can read from all 4 primary partitions
 * reboot/poweroff
 * video mode selection
 * boot any ELF (including Bootmii)
@@ -36,6 +36,8 @@ It is released in ELF format with the wii-linux-ngx project:
 <dd>No, it's a work in progress.</dd>
 <dt>Does it support WiiMote?</dt>
 <dd>No! It requires an USB and Bluetooth stack, if you know what I am talking about.</dd>
+<dt>Does it support USB storage?</dt>
+<dd>No, see above.</dd>
 </dl>
 
 # Screenshot
