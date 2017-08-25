@@ -18,6 +18,7 @@ It is released in ELF format with the wii-linux-ngx project:
 * FAT16/FAT32 directory browsing and launching of ELF files
 * all 4 primary partitions
 * reboot/poweroff
+* video mode selection
 * boot any ELF (including Bootmii)
 
 # Frequently Asked Questions
