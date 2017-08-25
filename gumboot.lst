@@ -32,25 +32,13 @@ timeout 30
 default 0
 
 title wii-linux-ngx
-	root (sd0,1)/linux
+	root (sd0,0)/gumboot
 	kernel /zImage.ngx
 	## 'boot' is always implicit, but if specified must be the last line of a menu entry
 	boot
 
 title Browse SD
 	root (sd0,0)
-	browse
-
-title Browse SD 2nd partition
-	root (sd0,1)
-	browse
-
-title Browse SD 3rd partition
-	root (sd0,2)
-	browse
-
-title Browse SD 4th partition
-	root (sd0,3)
 	browse
 
 title Bootmii GUI
