@@ -11,6 +11,8 @@ It is released in ELF format with the wii-linux-ngx project:
 # Features
 
 * GRUB legacy colors, CSS-style rgb() triples colors
+* browsing with power/reset buttons, activate with reset long press
+* GameCube gamepads support
 * timeout and default entry
 * customizable kernel command-line arguments
 * FAT16/FAT32 directory browsing and launching of ELF files
