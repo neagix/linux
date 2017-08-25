@@ -35,7 +35,7 @@ It is released in ELF format with the wii-linux-ngx project:
 
 This is a screenshot of the default `gumboot.lst` menu:
 
-<img alt="Gumboot default menu" src="gumboot-default.png" title="Gumboot default menu" />
+<img alt="Gumboot default menu" src="gumboot-default-menu.png" title="Gumboot default menu" />
 
 # Thanks
 
