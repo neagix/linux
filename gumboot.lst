@@ -1,0 +1,66 @@
+##
+## This is the default gumboot.lst menu for gumboot.
+##
+
+# Video mode, possible settings:
+# NTSC, PAL50, PAL60, PROGRESSIVE
+video PAL60
+
+## not yet supported - work in progress
+#splashimage (sd0,0)/gumboot/mario.png
+
+# supported colors are the official GRUB legacy set available at:
+# http://www.gnu.org/software/grub/manual/legacy/grub.html#color
+# syntax:
+#color NORMAL HIGHLIGHT HELPTEXT HEADING
+
+## colors can also be expressed in RGB format
+#color rgb(255,0,0)/rgb(0,255,0) green/black white/blue
+
+## official/default Gumboot color set
+color light-blue/white white/blue white/light-blue green/white
+
+## timeout 0 means show the menu and do not enable any countdown
+timeout 30
+
+## Gumboot-specific option
+## do not display the menu and boot directly
+## timeout must be zero
+## alias of 'hiddenmenu'
+#nomenu
+
+default 0
+
+title wii-linux-ngx
+	root (sd0,1)/linux
+	kernel /zImage.ngx
+	## 'boot' is always implicit, but if specified must be the last line of a menu entry
+	boot
+
+title Browse SD
+	root (sd0,0)
+	browse
+
+title Browse SD 2nd partition
+	root (sd0,1)
+	browse
+
+title Browse SD 3rd partition
+	root (sd0,2)
+	browse
+
+title Browse SD 4th partition
+	root (sd0,3)
+	browse
+
+title Bootmii GUI
+	root (sd0,0)
+	kernel /bootmii/gui.elf
+	boot
+
+title Reboot
+	reboot
+
+title Poweroff
+	# 'halt' can also be used
+	poweroff
