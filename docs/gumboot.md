@@ -29,7 +29,7 @@ It is released in ELF format with the wii-linux-ngx project:
 <dt>Does it support extended partitions?</dt>
 <dd>No.</dd>
 <dt>Does it support long filenames? exFAT?</dt>
-<dd>No, the middleware has broken support for them.</dd>
+<dd>No, the middleware has broken support for them. Make sure all your paths are in 8.3 format!</dd>
 <dt>Does it support splash images?</dt>
 <dd>No, it's a work in progress.</dd>
 </dl>
