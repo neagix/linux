@@ -10,7 +10,7 @@ It is released in ELF format with the wii-linux-ngx project:
 
 # Features
 
-* GRUB legacy colors, CSS-style rgb() triples colors
+* GRUB legacy colors, CSS-style rgb() triplets colors
 * navigate menu with power/reset buttons, activate with reset long press
 * GameCube gamepads support
 * timeout and default entry
@@ -35,7 +35,7 @@ It is released in ELF format with the wii-linux-ngx project:
 <dt>Does it support splash images?</dt>
 <dd>No, it's a work in progress.</dd>
 <dt>Does it support WiiMote?</dt>
-<dd>No! It requires an USB and Bluetooth stack, if you know what I am talking about.</dd>
+<dd>No! It would require an USB and Bluetooth stack coded in, if you know what I am talking about.</dd>
 <dt>Does it support USB storage?</dt>
 <dd>No, see above.</dd>
 </dl>
