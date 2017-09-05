@@ -1653,9 +1653,11 @@ endchoice
 config FB_GAMECUBE
 	bool "Nintendo GameCube/Wii frame buffer"
 	depends on FB && GAMECUBE_COMMON
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
+	select FB_SYS_FILLRECT
+	select FB_SYS_COPYAREA
+	select FB_SYS_IMAGEBLIT
+	select FB_SYS_FOPS
+	select FB_DEFERRED_IO
 	help
 	  This is the frame buffer device driver for the Nintendo GameCube.
 
