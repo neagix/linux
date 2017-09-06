@@ -31,10 +31,15 @@ timeout 30
 
 default 0
 
-title wii-linux-ngx
+title wii-linux-ngx kernel v3.4
 	root (sd0,0)/gumboot
 	kernel /zImage.ngx
 	## 'boot' is always implicit, but if specified must be the last line of a menu entry
+	boot
+
+title wii-linux-ngx kernel v2.6
+	root (sd0,0)/gumboot
+	kernel /zImage26.ngx
 	boot
 
 title Browse SD
