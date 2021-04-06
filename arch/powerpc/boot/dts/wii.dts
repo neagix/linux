@@ -285,12 +285,14 @@
 			reg = <0x0d800100 0x300>;
 		};
 
+/* This is broken: https://github.com/neagix/wii-linux-ngx/issues/21
 		disk@0d806000 {
 			compatible = "nintendo,hollywood-di";
 			reg = <0x0d806000 0x40>;
 			interrupts = <2>;
 			interrupt-parent = <&PIC0>;
 		};
+*/
 	};
 };
 
