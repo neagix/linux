@@ -10,6 +10,10 @@ Feel free to open Issues/Pull requests for improvement/discussion purposes.
 
 See also [Frequently Asked Questions](https://github.com/neagix/wii-linux-ngx/blob/master/docs/index.md#frequently-asked-questions).
 
+## How to install
+
+Download the compressed image from the releases, decompress it (`gunzip`) and then flash it to an SD card with your program of choice.
+
 ## How it works
 
 ### Wii
