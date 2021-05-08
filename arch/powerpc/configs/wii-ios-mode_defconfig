@@ -483,7 +483,7 @@ CONFIG_BT_HCIBTUSB=y
 # CONFIG_AF_RXRPC is not set
 # CONFIG_WIRELESS is not set
 # CONFIG_WIMAX is not set
-# CONFIG_RFKILL is not set
+CONFIG_RFKILL=y
 # CONFIG_NET_9P is not set
 # CONFIG_CAIF is not set
 # CONFIG_CEPH_LIB is not set
